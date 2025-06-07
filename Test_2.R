@@ -186,6 +186,52 @@ model_train |>
   features(.resid, ljung_box, lag = 24, dof = 0)
 
 # ────────────────────────────────────────────────────────
+# DEL 4B – KRYDSVALIDERING (GROWING WINDOW)
+# ────────────────────────────────────────────────────────
+
+# FORMÅL:
+# - Teste modellernes forecast-evne over flere rolling origins
+# - Mere robust validering end blot én testperiode (2019)
+
+# 4B.1 LAV STRETCHED TSIBBLE
+# Starter med 60 måneder (5 år) og ruller frem én måned ad gangen
+data_cv <- data |>
+  stretch_tsibble(.init = 60, .step = 1)
+
+# 4B.2 ESTIMÉR MODELLER OG FORECAST 1 MÅNED FREM
+# Vi bruger samme modeller som før
+cv_models <- data_cv |> 
+  model(
+    ARIMA  = ARIMA(svalue),
+    ETS    = ETS(svalue),
+    SNaive = SNAIVE(svalue)
+  )
+
+# 4B.3 FORECAST-FEJL (MAPE og RMSE) PR. MODEL
+cv_accuracy <- cv_models |> 
+  forecast(h = 1) |> 
+  accuracy(data) |> 
+  select(kon, region, .model, RMSE, MAPE)
+
+# 4B.4 SAMMENLIGN MODELLERNE PÅ TVÆRS AF REGION OG KØN
+cv_accuracy |> 
+  group_by(.model) |> 
+  summarise(across(c(RMSE, MAPE), mean, na.rm = TRUE)) |> 
+  arrange(RMSE)
+
+#write_rds(cv_accuracy, "data/cv_accuracy.rds")
+
+# Find den bedste model pr. køn og region baseret på laveste RMSE
+vinder_modeller <- cv_accuracy |> 
+  group_by(kon, region) |> 
+  slice_min(order_by = RMSE, n = 1, with_ties = FALSE) |> 
+  ungroup()
+
+vinder_modeller
+
+xx <- cv_accuracy |> arrange(kon, region, .model, RMSE) 
+
+# ────────────────────────────────────────────────────────
 # DEL 5 – FORECASTING: ARBEJDSLØSHED I 2020
 # ────────────────────────────────────────────────────────
 
@@ -205,11 +251,15 @@ models_final <- data_train |>
 forecast_2020 <- models_final |> 
   forecast(h = "12 months")
 
-# 5.4 Visualiser resultaterne pr. region og køn
-forecast_2020 |> 
+# Filtrér forecast_2020 til kun at inkludere den bedste model pr. serie
+forecast_best <- forecast_2020 |> 
+  inner_join(vinder_modeller, by = c("kon", "region", ".model"))
+
+# 5.4 Visualiser
+forecast_best |> 
   autoplot(data) +
   labs(
-    title = "Forecast for 2020 – pr. region og køn",
+    title = "Forecast for 2020 – bedste model pr. serie",
     subtitle = "Med 80% og 95% prædiktionsintervaller",
     y = "Arbejdsløse pr. 10.000 personer",
     x = "Tid"
@@ -217,12 +267,13 @@ forecast_2020 |>
   facet_wrap(~ kon + region, scales = "free_y") +
   theme_minimal()
 
-# 5.5 Udtræk centrale forudsigelser med prædiktionsintervaller (95 %)
-forecast_2020 |> 
+# 5.5 Centrale forudsigelser
+forecast_best |> 
   hilo(level = 95) |> 
   unpack_hilo("95%") |> 
   select(kon, region, yearmonth, .model, .mean, `95%_lower`, `95%_upper`) |> 
   arrange(region, kon, yearmonth)
+
 
 
 # ────────────────────────────────────────────────────────
@@ -231,33 +282,28 @@ forecast_2020 |>
 
 # 6.1 BEREGN SAMMENLIGNENDE FORECAST-TABEL
 # Udvælg ét modelestimat per region og køn og måned (fx januar, april, juli, oktober)
-forecast_2020 |> 
+forecast_best |> 
   filter(month(yearmonth) %in% c(1, 4, 7, 10)) |> 
   hilo(level = 95) |> 
   unpack_hilo("95%") |> 
   select(kon, region, yearmonth, .model, .mean, `95%_lower`, `95%_upper`) |> 
   arrange(region, kon, yearmonth) |> 
   mutate(across(where(is.numeric), round, 2)) |> 
-  knitr::kable(caption = "Udvalgte forecasts for 2020 (jan, apr, jul, okt) pr. model, region og køn")
+  knitr::kable(caption = "Forecasts for 2020 (jan, apr, jul, okt) – bedste model pr. serie")
+
 
 # 6.2 VISUEL SAMMENLIGNING – EN MODEL FORDELT PÅ REGIONER OG KØN
 # Eksempel: ARIMA's forecasts for 2020
-forecast_2020 |> 
-  filter(.model == "ARIMA") |> 
+forecast_best |> 
   autoplot(data) +
   labs(
-    title = "Forecast for 2020 med ARIMA – alle serier",
+    title = "Forecast for 2020 – bedste model pr. serie",
     y = "Arbejdsløse pr. 10.000 personer",
     x = "Tid"
   ) +
   facet_wrap(~ kon + region, scales = "free_y") +
   theme_minimal()
 
-# 6.3 KONKLUSION (skriv i tekstform i rapporten, fx)
-# Eksempel i tekstform:
-# - ARIMA og ETS giver generelt ens resultater for de fleste serier
-# - SNaive har tydeligt bredere prædiktionsintervaller
-# - Arbejdsløsheden er generelt højere for mænd end kvinder i alle regioner
-# - Hovedstaden og Nordjylland har lavest niveau, mens Sjælland og Syddanmark er højere
-# - Der ses tydelige sæsonmønstre især i mænds arbejdsløshed
+
+
 

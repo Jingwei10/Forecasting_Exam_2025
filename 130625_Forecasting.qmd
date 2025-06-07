@@ -1,0 +1,1412 @@
+---
+title: "Ugeeksamen i Forecasting"
+author: 
+- name: "Christine Hegelund"
+- name: "Jing Wei"
+- name: "Marcus Nielsen"
+date: "2025-06-13"
+format: 
+  pdf: 
+    documentclass: article
+    toc-depth: 3
+    number-sections: true
+    titlepage: true
+    keep-tex: true
+    fig-cap-location: top
+editor: visual
+lang: da
+---
+
+```{r Pakker}
+#| echo: false
+#| warning: false
+#| message: false
+
+pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate, 
+               ggplot2, feasts, fable, tsibbledata, forecast, fpp2, fpp3,
+               fabletools, knitr, ggpubr, gridExtra, GGally, slider,
+               forecast, car, shiny, glue, broom, kableExtra, gt, seasonal, 
+               latex2exp, ggfortify, janitor, readxl, rlang)
+
+```
+
+\maketitle
+\thispagestyle{empty}
+\begin{center}
+\large{Forecasting Eksamen} \\[3em]
+\end{center}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{fotos/forside.png} \\[2em]
+\end{center}
+\begin{center}
+\fcolorbox{gray}{white}{
+\parbox{0.8\textwidth}{
+\centering
+\textbf{Antal tegn (inkl. mellemrum): 97023}
+}}
+\end{center}
+\begin{center}
+\textbf{Vejledere:} \\
+Bjarne Taulo Sørensen \\
+\end{center}
+
+\newpage
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+
+# Tabel over figurer {.unnumbered}
+
+\thispagestyle{empty}
+
+![](fotos/figuroversigt.jpg){width="100%"}
+
+\newpage
+
+# Abstract {.unnumbered}
+
+\thispagestyle{empty}
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{3}}
+
+\newpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\tableofcontents
+\newpage
+
+# Introduktion
+
+Mange medlemsbaserede erhvervsorganisationer oplever, at det bliver vanskeligere at bevare relevans i takt med, at virksomhedernes behov ændrer sig, og nye netværkstilbud vinder frem[^1]. Business Viborg, som spiller en central rolle i Viborgs erhvervsliv gennem netværk, rådgivning og arrangementer, står over for skærpet konkurrence og ændrede forventninger fra medlemsvirksomhederne. Det stiller krav til en tydeligere differentiering og værdiskabelse[^2]. En særlig udfordring er churn – tab af medlemmer – som både påvirker organisationens økonomi og svækker netværkets samlede værdi. For bedre at kunne fastholde medlemmerne ønsker Business Viborg indsigt i, hvilke typer virksomheder der typisk melder sig ud, og hvilke mønstre der kan spores i medlemsadfærden. En datadrevet tilgang kan her bidrage til at identificere risikomedlemmer og synliggøre bagvedliggende mønstre, så organisationen kan handle proaktivt og målrettet. Der er derfor behov for et internt analyseværktøj, der kan forudsige churn og danne grundlag for mere rettidige og relevante indsatser, der styrker både fastholdelsen og netværkets tiltrækningskraft over for potentielle nye medlemmer[^3]. Med dette afsæt undersøger opgaven, hvordan en medlemsorganisation kan bruge medlemsdata til at understøtte fastholdelsen – med Business Viborg som case. I det følgende præsenteres den konkrete problemstilling[^4], som danner udgangspunkt for analysen.
+
+[^1]: Oplæg v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility d. 2. april 2025.
+
+[^2]: Se bilag 2
+
+[^3]: Ibid.
+
+[^4]: Udleverede eksamenscase.
+
+## Problemformulering
+
+Hvordan kan Business Viborg understøtte målrettet medlemsfastholdelse gennem et internt værktøj, der forudsiger churn og visualiserer churn-drivere?
+
+## Afgrænsning
+
+Denne opgave fokuserer på at udvikle en datadrevet løsning til at forudsige medlemsudmeldelser (churn) i Business Viborg. Projektets afgrænsning ligger på anvendelsen af klassifikationsmodeller, der balancerer prædiktionsevne og fortolkelighed, med henblik på at understøtte beslutningstagning i organisatorisk kontekst.
+
+Projektet baseres udelukkende på organisationens interne historiske medlemsdata og inddrager hverken eksterne datakilder eller realtidsdata. Den tekniske løsning omfatter en webapplikation udviklet i R Shiny, som visualiserer churn-risiko og centrale churn-drivere.
+
+De juridiske og etiske overvejelser afgrænses til dansk kontekst, med særligt fokus på GDPR og ansvarlig dataanvendelse. Internationale standarder og avancerede sikkerhedstekniske forhold ligger uden for opgavens ramme.
+
+### AI-værktøj
+
+Under udarbejdelsen af opgaven er ChatGPT (version GPT-4o) anvendt som et støtteværktøj i skriveprocessen. Værktøjet er primært benyttet til idéudvikling, sproglig sparring, forbedring af formuleringers klarhed, grammatisk korrektur samt støtte i forbindelse med enkle kodestumper. Anvendelsen har udelukkende omfattet sproglige, strukturelle og tekniske aspekter. Det skal derfor understreges, at alt analytisk, fortolkende og konkluderende indhold er udarbejdet selvstændigt af os.
+
+## Definitioner/forkortelser
+
+I dette afsnit afklares centrale begreber og forkortelser, der anvendes gennem opgaven, for at sikre en ensartet forståelse.
+
+BUVI: Forkortelse for *Business Viborg*.
+
+ML: Forkortelse for *machine learning*.
+
+SVM: Forkortelse for *Support Vector Machine*.
+
+## Struktur
+
+Opgavens struktur tager afsæt i CRISP-DM-modellen, som udgør den overordnede ramme for det analytiske arbejde. Modellen understøtter en systematisk tilgang ved at opdele analyseprocessen i seks faser: forretningsforståelse, dataforståelse, dataforberedelse, modellering, evaluering og implementering. Denne struktur bidrager til både overblik og sammenhæng i analysearbejdet, idet hver fase bygger videre på den foregående og dermed sikrer en metodisk og veltilrettelagt gennemgang af hele processen.
+
+# Empiri
+
+Opgaven tager udgangspunkt i kvantitativ empiri i form af syv udleverede RDS-filer med medlemsdata. Disse data er stillet til rådighed af organisationen og danner det centrale grundlag for vores analyse. Da materialet er sekundært og ikke indsamlet af os selv, har vi ikke haft indflydelse på datastrukturen, variabelvalg eller afgrænsning. Det begrænser vores mulighed for at tilpasse dataindsamlingen til undersøgelsen, men giver samtidig adgang til et omfattende datamateriale, som vi ikke ville kunne have indsamlet på egen hånd. Herudover inddrages kvalitative input fra et virksomhedsbesøg hos Business Viborg, hvor chefkonsulenten Michael Freundlich præsenterede centrale elementer af organisationens arbejde og de udfordringer, de ønsker hjælp til. Præsentationen foregik som et oplæg med efterfølgende dialog. Vi har både modtaget hans præsentationsmateriale og taget egne noter under besøget, som er vedlagt som bilag [^5]. Disse materialer bruges som kvalitative datakilder og bidrager til at rammesætte analysen samt skabe en dybere forståelse af den organisatoriske kontekst, som ikke fremgår direkte af medlemsdataene. Samlet set er valget af empiri baseret på relevans i forhold til opgavens problemformulering samt tilgængeligheden af data. Kombinationen af kvantitative medlemsdata og kvalitative indsigter fra virksomhedsbesøget muliggør en mere nuanceret analyse, hvor dataene kan tolkes i lyset af konkrete organisatoriske forhold.
+
+[^5]: Se bilag 1
+
+# Forretningsforståelse
+
+Det er afgørende for Business Viborg at identificere, hvilke faktorer der har størst betydning for medlemsloyalitet og tiltrækning, samt hvordan de kan optimere deres strategi for at sikre vækst. Michael Freundlich, der leder medlemsudviklingen i Business Viborg, ønsker at anvende en mere analytisk tilgang til at forstå og løse problemet[^6]. Målet er derfor at kunne forudsige, hvilke virksomheder der er mest tilbøjelige til at melde sig ind eller forlade netværket, og hvordan man bedst kan målrette ressourcerne for at øge fastholdelsen og tiltrække nye medlemmer. Business Viborg har allerede adgang til en række data om nuværende og tidligere medlemmer, og ønsker at udnytte disse og derved finde ud af hvordan BUVI kan skabe værdi for deres nuværende- og potentielle medlemmer. Forretningsproblemet kan derfor omdannes til et dataanalyseproblem, hvor Business Viborg ved hjælp af eksisterende data kan identificere de faktorer, der bedst forudsiger medlemsfastholdelse. En klassifikationsmodel vil kunne forudsige sandsynligheden for, at en virksomhed enten forbliver medlem eller forlader netværket, hvilket gør det muligt at optimere Business Viborgs indsats og målrette kommunikationen mod de mest relevante virksomheder.
+
+[^6]: Oplæg v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility d. 2. april 2025.
+
+# Dataforståelse
+
+I dette afsnit beskrives processen med at opnå forståelse for de tilgængelige datasæt, herunder hvordan de er importeret, hvilke oplysninger de indeholder, samt overvejelser om hvilke variabler, der skal indgå i den videre analyse.
+
+## Importering af datasæt
+
+De tilgængelige 7 datasæt importeres med readRDS()-funktionen. Datasættene udgør det samlede datagrundlag for den efterfølgende analyse og modellering. Indholdet på disse syv filer kan ses i bilag 3.
+
+Alle datasæt indeholder en eller flere primærnøgler, som vi joiner på[^7].
+
+[^7]: Se bilag 4.
+
+## Overblik over datasæt
+
+Vi har gennemgået datasættene for at forstå strukturen og indholdet, samt om nogle variabler indeholder mange NA’er eller evt. få observationer. Derefter har vi arbejdet videre med alle datasæt, på nær ”old_project”, som vi besluttede at vende tilbage til, hvis tidshorisonten tillod det.
+
+## Overvejelser om tilføjelse og fjernelse af variabler
+
+Vi har i datasættet derfor fokuseret på at identificere variabler der kan sige noget om medlemmernes engagement, adfærd og tilknytning til BUVI.
+
+## Dataforberedelse
+
+I dette afsnit beskriver vi de trin, vi gennemførte for at klargøre datasættene til analyse og udvikling af maskinlæringsmodeller.
+
+## Datarensning og transformering
+
+Vi arbejdede med seks datasæt, som først skulle renses, før de kunne bruges i analysen. Mange af kolonnenavnene var rodede, og vi standardiserede dem derfor med str_remove() og clean_names() for at gøre datasættene nemmere at håndtere. Herefter fjernede vi irrelevante kolonner, såsom ID'er, e-mails og navne, samt dublerede kolonner, for eksempel gentagne CVR-numre. Kolonner med meget detaljeret information, som for eksempel timestamps, blev forenklet ved at konvertere dem til mere overskuelige formater som årstal eller antal dage. For at sikre, at hver virksomhed kun optrådte én gang i datasættet, håndterede vi dubletter ved at gruppere på CVR og p-nummer og anvende slice_head() til at bevare den første række i hver gruppe. Manglende værdier (NA’er) blev håndteret ud fra en vurdering af konteksten. Hvis en virksomhed ikke havde deltaget i et event, blev eventvariablerne sat til 0, mens vi i tilfælde af manglende postnumre indsatte værdien 8800. På den måde bevarede vi så mange observationer som muligt uden at forvrænge datasættet. Vi standardiserede desuden en række nøglevariable som virksomhedstype, driftsstatus og branche ved hjælp af mutate() og case_when(), så data fremstod ensartede på tværs af datasættene. Datoer blev konverteret til korrekt format ved brug af lubridate og as_date(). I forlængelse af rensningen transformerede vi data ved at konvertere kategoriske variabler til numeriske, så de kunne anvendes i statistiske analyser og modeller. Samtidig blev visse værdier normaliseret for at sikre sammenlignelighed på tværs af virksomheder. Datasættene blev herefter opdelt i trænings- og testdata med henblik på efterfølgende analysearbejde. Til sidst blev de rensede og transformerede datasæt koblet sammen ved hjælp af relevante nøgler, såsom CVR-nummer, kontakt-ID eller virksomhedens interne ID, afhængigt af hvad der var mest hensigtsmæssigt i forhold til de enkelte datasæt.
+
+## Dannelse af nye variabler og fjernelse af variabler
+
+I arbejdet med at samle de forskellige datasæt til ét primært datasæt har vi tilføjet nye variabler og fjernet kolonner, som enten var irrelevante eller overlappede. Nedenstående figur illustrer et overblik over datasættene.
+
+Datasættet all_companies.rds var det centrale udgangspunkt. Herfra kom vores y-variabel (churn), som vi byggede på baggrund af medlemsstatus og virksomhedens driftsstatus. Derudover trak vi oplysninger som virksomhedstype, antal ansatte, branche (nace-sektion) og afstand til Viborg (beregnet ud fra postnummer via API). Vi lavede også en variabel for antal p-numre pr. virksomhed. Alt der relaterede sig til ID’er, firmanavne og rå datoformater blev fjernet. Datasættet all_contact.rds blev brugt til at konstruere kontaktoplysninger: antal gange en virksomhed er kontaktet, år for første og sidste kontakt, samt hvor mange år de har været i kontakt. Kolonner som kontaktpersonens navn og e-mail blev droppet, og vi beholdt kun de overordnede, aggregerede variable pr. virksomhed. Datasættet company_contacts.rds blev egentlig renset og transformeret på samme måde som all_contact, men viste sig at indeholde de samme typer oplysninger. Vi valgte derfor ikke at tage det med videre i det endelige datasæt. I event_participants.rds, fjernede vi EventId, navne og e-mail, og vi lavede i stedet to overordnede variabler: hvor mange unikke personer fra en virksomhed der har deltaget, og hvor mange deltagelser der har været i alt. Datasættet events.rds blev brugt til at lave variable som antal events pr. virksomhed, første og sidste event-år, og år de har deltaget i events i alt. Vi lavede også to nye kategorier: en for billettype (gratis, betalt, inviteret, osv.) og en for eventtype (netværk, bæredygtighed, ledelse osv.). Endelig blev meetings.rds reduceret til to overordnede variable: antal møder pr. virksomhed og gennemsnitlig mødelængde.Se bilag 4.
+
+## Samling af datasæt
+
+De forskellige datasæt samles i ét datasæt, hvor hver virksomhed er repræsenteret med én række. Samlingen blev udført gennem en række koblinger baseret på nøgler som company_id, CVR-nummer, p-nummer og contact_id.
+
+![](fotos/joinkode.jpg){width="100%"}
+
+Tilsidst gemmes resultatet som rds-fil, hvorefter det hentes ind i objektet "dataset_done". ![](fotos/write_rds.jpg){width="50%"}
+
+\newpage
+
+# Eksplorativ analyse
+
+I den eksplorative analyse har vi haft fokus på at identificere mønstre og mulige forklaringsvariable i relation til churn blandt virksomheder[^8]. Indledningsvist er der foretaget en hurtig gennemgang af datasættets struktur og indhold via funktionerne str().
+
+[^8]: Hvad er eksplorativ dataanalyse?, Online Insights, https://online-insights.dk/hvad-er-eksplorativ-dataanalyse-laer-mere-her/ (tilgået \[15. april 2025\]).
+
+Her ses de forskellige strings og nedenfor et count på churn og medlem i alt.
+
+```{r hurtigt_overblik1}
+#| echo: true
+#| warning: false
+#| message: false
+
+dataset_done <- readRDS("data/dataset_done.rds")
+str(dataset_done) # hutigt overblik
+```
+
+```{r hurtigt_overblik2}
+#| echo: true
+#| warning: false
+#| message: false
+
+dataset_done |> count(churn)
+```
+
+Dernæst blev churn analyseret i forhold til virksomheders indmeldingsår, hvilket giver indsigt i at årgangene 2024, 2020, 2017 og 2015 har en højere churn-rate.
+
+```{r churn_indmeldingsår}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Churn ift. indmeldingsår:
+dataset_done %>%
+  group_by(indmeldingsår, churn) %>%
+  summarise(antal = n()) %>%
+  ggplot(aes(x = as.factor(indmeldingsår), y = antal, fill = churn)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "Indmeldingsår",
+    y = "Antal medlemmer",
+    fill = "Status",
+    title = "Churn-status fordelt på indmeldingsår"
+  ) +
+  coord_flip()
+```
+
+```{r churn_virksomhedstype}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Churn ift. virksomhedstype:
+dataset_done  |> 
+  group_by(virksomhedstype, churn) |>
+  summarise(antal = n()) |>
+  ggplot(aes(x = fct_reorder(virksomhedstype, antal), y = antal, fill = churn)) +
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = antal), 
+            position = position_fill(vjust = 0.5), size = 3) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Virksomhedstype",
+    y = "Andel",
+    fill = "Churn",
+    title = "Andel churn pr. virksomhedstype med antal"
+  )
+```
+
+Ud fra plottet *"Andel churn pr. virksomhedstype med antal"* fremgår det, at sandsynligheden for churn varierer afhængigt af virksomhedstypen. Virksomheder med lavt kapitalkrav har typisk en højere churn-rate, idet omkring 80 % af disse har forladt medlemskabet. Omvendt ses en lavere churn-rate blandt virksomhedstyper med højt kapitalkrav, hvor cirka 50 % har churnet. Virksomheder med mellemhøjt kapitalkrav placerer sig mellem disse to grupper med en churn-rate på cirka 70 %.
+
+Herefter er der foretaget en analyse af *"Andel churn pr. virksomhedstype med antal"*, som viser, hvordan churnraten varierer afhængigt af virksomhedstypen. Det fremgår tydeligt, at visse brancher, såsom *Landbrug, skovbrug og fiskeri*samt *Sundhed og socialvæsen*, har en højere andel churnede virksomheder sammenlignet med andre:
+
+```{r churn_branche}
+#| echo: false
+#| warning: false
+#| message: false
+
+# 1. Beregn churn-rate pr. sektion
+churn_andel <- dataset_done |> 
+  group_by(nace_sektion) |> 
+  summarise(churn_rate = mean(churn == "Churnet"))
+
+# 2. Join churn-rate tilbage til originalt datasæt - branche
+dataset_done |> 
+  left_join(churn_andel, by = "nace_sektion") |> 
+  mutate(nace_sektion = fct_reorder(nace_sektion, churn_rate)) |> 
+  group_by(nace_sektion, churn) |> 
+  summarise(antal = n()) |> 
+  ggplot(aes(x = nace_sektion, y = antal, fill = churn)) + 
+  geom_bar(stat = "identity", position = "fill") +
+  geom_text(aes(label = antal), 
+            position = position_fill(vjust = 0.5), size = 3) +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "NACE-Sektion (sorteret efter churn-rate)",
+    y = "Andel",
+    fill = "Churn",
+    title = "Andel churn pr. virksomhedstype med antal"
+  )
+
+```
+
+Nedenstående tibble viser, at en stor andel af de churnede virksomheder er placeret uden for Viborg – 77 % af virksomhederne uden for Viborg har churnet, sammenlignet med 68 % inden for Viborgs grænser. Dette indikerer, at der bør sættes særligt fokus på medlemmer uden for Viborg for at reducere churn.
+
+```{r churn_viborg_udenfor}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Churn lokal og Viborg:
+eda_churn_viborg_udenfor <- dataset_done |> 
+  group_by(lokal) |> 
+  summarize(
+    antal = n(),
+    antal_churnet = sum(churn == "Churnet"),
+    churn_procent = round(antal_churnet / antal, 2)
+  )
+eda_churn_viborg_udenfor
+```
+
+Derudover vises her, at virksomheder med færre ansatte har en markant højere tendens til at churne:
+
+```{r antal_ansatte}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Gns færre antal ansatte i churn:
+eda_antal_ansatte <- dataset_done |> 
+  group_by(churn) |> 
+  summarise(
+    mean_ansatte = mean(ansatte),
+    median_ansatte = median(ansatte)
+  )
+
+eda_antal_ansatte
+```
+
+Churnede virksomheder har i gennemsnit haft 1,5 kontakter med organisationen, typisk kun én. Medlemsvirksomheder har i gennemsnit haft 4,79 kontakter, med en median på 2.
+
+```{r corr}
+#| echo: false
+#| warning: false
+#| message: false
+
+#Multivariat analyse og korrelationer:
+# cor(dataset_done %>% select(where(is.numeric)))
+# GGally::ggpairs(dataset_done) # noget er galt her
+
+```
+
+```{r antal_kontakt}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Gns+median pr. churn-gruppe:
+eda_gnm_kontakt <- dataset_done %>%
+  group_by(churn) %>%
+  summarise(
+    gennemsnit_kontakt = mean(antal_kontakt, na.rm = TRUE),
+    median_kontakt = median(antal_kontakt, na.rm = TRUE)
+  )
+
+eda_gnm_kontakt
+```
+
+Der blev desuden oprettet nye variable som total_aktivitet (sum af events og møder) for at undersøge engagementsniveau:. Her ses det, at medlemsvirksomheder i gennemsnit deltager i flere aktiviteter end de churnede.
+
+```{r gnms_aktivitet}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Deltagelse i aktiviteter er højere ved medlem:
+df <- dataset_done %>%
+  mutate(total_aktivitet = antal_events + antal_møder)
+
+# Gns+median
+eda_gnm_aktivitet <- df %>%
+  group_by(churn) %>%
+  summarise(
+    gennemsnit_aktivitet = mean(total_aktivitet, na.rm = TRUE),
+    median_aktivitet = median(total_aktivitet, na.rm = TRUE)
+  )
+
+eda_gnm_aktivitet
+```
+
+\newpage
+
+# Modellering
+
+I dette afsnit har vi arbejdet med at opbygge og evaluere modeller, som kan forudsige, om en kunde vil churne eller forbliver medlem.
+
+## Opdeling i test- og træningsdata
+
+Datasættet blev opdelt i et træningssæt og et testsæt, så vi kunne evaluere modellernes generaliseringsevne på data, de ikke er blevet trænet på. Vi har anvendt en 70/30 fordeling mellem trænings- og testdata.
+
+```{r test_træn}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+# Dataindlæsning og churn-encoding
+dataset <- dataset_done
+
+# Split (med stratificering)
+set.seed(123)
+data_split <- initial_split(dataset, prop = 0.7, strata = churn)
+train_data <- training(data_split)
+test_data  <- testing(data_split)
+```
+
+## Modelopbygninger
+
+Herunder ses de forskellige udvalgte modeller til forudsigelse af churn. For alle modelopbygninger gælder, at vi har brugt tidymodels-pakken[^9]. Vi har i modelopbygningen gjort følgende:
+
+[^9]: Get started with tidymodels, https://www.tidymodels.org/start/ (tilgået 7. april 2025)
+
+1\. Lavet et CV setup på træningsdata.
+
+```{r Tidy1}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+# Tidymodels ---------------------------------------------
+tidymodels_prefer() 
+
+set.seed(234)
+folds <- vfold_cv(train_data, # Træningsdataen der skal bruges
+                  v = 10, # Antallet af folds der skal laves
+                  strata = churn) # Sørger for at y-variablen er ligeligt fordelt i folds.
+```
+
+2\. Opsat recipe og preprocessering, så data gøres klar til modellering.
+
+```{r Tidy2}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+# Definer recipe
+# Opskrift: tidy preprocessing
+churn_recipe <- recipe(churn ~ ., data = train_data) |>     # Definér recipe: churn som mål, alle andre som prædiktorer
+  step_rm(cvr_nummer, p_nummer) |>                          # Fjern identifikatorer, som ikke bruges til modellering
+  step_novel(all_nominal_predictors()) |>                   # Tilføj "ny" kategori til ukendte levels i kategoriske variabler
+  step_dummy(all_nominal_predictors()) |>                   # One-hot encode alle kategoriske prædiktorer
+  step_zv(all_predictors()) |>                              # Fjern prædiktorer uden variation (zero variance)
+  step_normalize(all_numeric_predictors()) |>               # Standardiser (center og skalér) numeriske prædiktorer
+  step_upsample(churn)                                      # Kopiér minoritetsklassen så begge klasser har lige mange rækker (balanceret datasæt)
+
+  # Tilføj step_rm til cvr, p_nummer, lon og lat
+```
+
+3\. Defineret modellen og opsat hyperparametre.
+
+```{r Tidy3}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+
+# Modelspecifikation
+decision_tree_rpart_spec <- 
+  decision_tree(tree_depth = tune(), min_n = tune(), cost_complexity = tune()) |> 
+  set_engine("rpart") |> 
+  set_mode("classification")
+
+logistic_reg_glmnet_spec <- 
+  logistic_reg(penalty = tune(), mixture = tune()) |> 
+  set_engine("glmnet") |> 
+  set_mode("classification")
+
+naive_bayes_naivebayes_spec <- 
+  naive_Bayes(smoothness = tune(), Laplace = tune()) |> 
+  set_engine("naivebayes") |> 
+  set_mode("classification")
+
+nearest_neighbor_kknn_spec <-
+  nearest_neighbor(neighbors = tune(),
+                   weight_func = tune(), dist_power = tune()) |> 
+  set_engine("kknn") |> 
+  set_mode("classification")
+
+rand_forest_ranger_spec <- 
+  rand_forest(mtry = tune(), min_n = tune()) |> 
+  set_engine("ranger", importance = "permutation") |>
+  set_mode("classification")
+
+svm_linear_kernlab_spec <- 
+  svm_linear(cost = tune(), margin = tune()) |> 
+  set_engine("kernlab") |> 
+  set_mode("classification")
+
+svm_rbf_kernlab_spec <- 
+  svm_rbf(cost = tune(), rbf_sigma = tune(), margin = tune()) |> 
+  set_engine("kernlab") |> 
+  set_mode("classification")
+
+boost_tree_xgboost_spec <-
+  boost_tree(trees = tune(), mtry = tune(), learn_rate = tune()) |> 
+  set_engine("xgboost") |> 
+  set_mode("classification")
+
+```
+
+4\. Opsat workflow.
+
+```{r Tidy4}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+# Opsæt samlet workflow_set() for alle modeller
+BUVI_workflow_set <- 
+  workflow_set(
+    preproc = list(rec = churn_recipe),
+    models = list(decision_tree = decision_tree_rpart_spec,
+                  logistic_reg = logistic_reg_glmnet_spec, 
+                  naive_bayes = naive_bayes_naivebayes_spec,
+                  knn = nearest_neighbor_kknn_spec, 
+                  rand_forest = rand_forest_ranger_spec,
+                  svm_linear = svm_linear_kernlab_spec, 
+                  svm_rbf = svm_rbf_kernlab_spec,
+                  xgboost = boost_tree_xgboost_spec
+    )
+  )
+```
+
+5\. Grid Search og tuning, hvor grid search kører på tværs af de forskellige folds og finder det optimale hyperparametre vha. metrics som f.eks. AUC.
+
+```{r Tidy5}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+# Tuning
+grid_ctrl <- control_grid(
+  verbose = TRUE,
+  save_pred = TRUE,
+  parallel_over = "everything",
+  save_workflow = TRUE
+)
+# Definer metric set
+BUVI_metrics <- metric_set(yardstick::accuracy, roc_auc, f_meas, sens, spec)
+
+#plan(multisession) # planlægger hvordan fremtidige beregninger evalueres.
+# Multisession = parallel i separate R sessioner.
+
+#strt.time <- Sys.time() # aktuelt starttid - til måling af tid
+
+# Her udføres grid search for model tuning:
+
+## Det tager langttid at køre denne udkommenterede kode:
+#grid_results <- BUVI_workflow_set |>
+#   workflow_map(
+#     verbose = TRUE,
+#     seed = 2024,
+#     resamples = folds,
+#     grid = 7,
+#     control = grid_ctrl,
+#     metrics = BUVI_metrics
+#   )
+
+#Sys.time() - strt.time #beregning af operationens tid.
+
+#plan(sequential) # back to normal.
+
+#write_rds(grid_results, "data/grid_results.rds")
+
+grid_results <- readr::read_rds("data/grid_results.rds")
+
+# Oversigt over scorene fra de bedste tuningsværdier for hver model.
+grid_overview <- grid_results %>% 
+  rank_results(select_best = TRUE) %>% 
+  select(wflow_id, .metric, mean) %>% 
+  pivot_wider(names_from = .metric, values_from = mean) %>% 
+  arrange(-f_meas)
+# Når select_best = TRUE, beholdes kun den bedste model for hver kombination af 
+# tuning parametre.
+```
+
+6\. ROC-kurve plot laves, for at vurdere præstationen af modellen.
+
+```{r rockurve}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+#| results: "hide"
+
+# 1. Hent alle predictions fra CV for alle workflows og parametre
+cv_preds <- collect_predictions(grid_results)
+
+# 2. Hent de bedste parametre for hver model ud fra ROC AUC
+best_params <- grid_results %>%
+  rank_results(select_best = TRUE) %>%
+  filter(.metric == "roc_auc") %>%
+  select(wflow_id, .config)
+
+# 3. Filtrér predictions til kun de bedste tunings pr. model
+cv_preds_best <- cv_preds %>%
+  inner_join(best_params, by = c("wflow_id", ".config"))
+
+# 4. LAV ROC-kurver for hver model
+# Find navnet på probability-kolonnen for din positive klasse (fx .pred_ja eller .pred_1)
+head(cv_preds_best)
+# Antag .pred_ja er den positive klasse:
+roc_curves <- cv_preds_best %>%
+  group_by(wflow_id) %>%
+  yardstick::roc_curve(truth = churn, .pred_Churnet) # Skift til .pred_1 eller hvad din positive klasse hedder
+
+# 5. Plot ROC-kurverne samlet
+ggplot(roc_curves, aes(x = 1 - specificity, y = sensitivity, color = wflow_id)) +
+  geom_line() +
+  geom_abline(lty = 2) +
+  labs(title = "ROC-kurver (10-fold CV, bedste tuning pr. model)",
+       x = "1 - Specificitet", y = "Sensitivitet")
+
+# 1. Udvælg de 5 bedste modeller (efter ROC AUC)
+top5_wflows <- grid_results %>%
+  rank_results(select_best = TRUE) %>%
+  filter(.metric == "roc_auc") %>%
+  arrange(desc(mean)) %>%
+  slice_head(n = 5) %>%
+  pull(wflow_id)
+
+# 2. Filtrér best_params til kun disse modeller
+best_params_top5 <- best_params %>%
+  filter(wflow_id %in% top5_wflows)
+
+# 3. Filtrér cv_preds_best til kun de 5 bedste
+cv_preds_best_top5 <- cv_preds_best %>%
+  filter(wflow_id %in% top5_wflows)
+
+# 4. Lav ROC-kurvedata (skift til din positive klasse, fx .pred_Churnet)
+roc_curves_top5 <- cv_preds_best_top5 %>%
+  group_by(wflow_id) %>%
+  yardstick::roc_curve(truth = churn, .pred_Churnet)
+
+# 5. Plot de 5 bedste modeller
+ggplot(roc_curves_top5, aes(x = 1 - specificity, y = sensitivity, color = wflow_id)) +
+  geom_line() +
+  geom_abline(lty = 2) +
+  labs(title = "ROC-kurver for de 5 bedste modeller (10-fold CV)",
+       x = "1 - Specificitet", y = "Sensitivitet")
+```
+
+7\. Valg af model.
+
+8\. Træning af valgte model.
+
+### Logistisk regressionsmodel
+
+![](fotos/log_model.jpg){width="100%"}
+
+Logistisk regression anvendes til klassifikationsproblemer, hvor udfaldet er binært[^10]. Her bliver hyperparametrene for modelspecifikationen, såsom penalty og mixture, tunet for at optimere modellen. penalty styrer graden af regularisering, hvilket kan hjælpe med at undgå overfitting, mens mixture angiver en blanding af L1 og L2 regularisering. Ved at tune disse parametre kan modellen blive bedre til at generalisere til nye data.
+
+[^10]: James, G., Witten, D., Hastie, T. & Tibshirani, R. (2023). An Introduction to Statistical Learning: With Applications in R. 2. udgave. Springer
+
+### KNN
+
+![](fotos/knn_model.jpg){width="100%"}
+
+KNN bruges til at forudsige en klasse for en ny observation, hvor man ser på de k nærmeste observationer i træningsdata, og bruger deres output til at afgøre svaret[^11]. Der defineres KNN-model, hvor hyperparametrene k (neighbors), vægtfunktion (weight_func) og afstandens effekt (dist_power) alle er sat til at blive tunet.
+
+[^11]: James et al., An Introduction to Statistical Learning.
+
+### Naïve Bayes
+
+![](fotos/naive_model.jpg){width="100%"}
+
+Naive Bayes forudsiger sandsynligheden for, at en observation tilhører en bestemt klasse baseret på dens inputvariabler. Det bruger Bayes’ sætning: P(Klasse│Data)=(P(Data\|Klasse)\*P(Klasse))/(P(Data)) [^12]. De to hyperparametre udglatning (smoothness) og Laplace-udglatning optimeres gennem tuning.
+
+[^12]: James et al., An Introduction to Statistical Learning.
+
+### Beslutningstræer
+
+![](fotos/decision_model.jpg){width="100%"}
+
+Beslutningstræer deler data op i grene baseret på spørgsmål, der maksimerer informationen på hvert trin. De er forholdsvis nemme at fortolke[^13]. Beslutningstræet classifier gennem tuning, hvor man finder de bedste værdier for tree_depth, min_n og cost_complexity ved splits, så modellen opnår den bedste præstation.
+
+[^13]: James et al., An Introduction to Statistical Learning.
+
+### Boosting
+
+Boosting er en teknik, hvor svage modeller (typisk træer) bygges sekventielt, og hver ny model forsøger at rette fejlene fra den foregående. I stedet for at træne én stor model, f.eks. et dybt beslutningstræ, træner man mange små og svage modeller. Hver ny model fokuserer på de observationer, der blev klassificeret forkert af de tidligere modeller. Til sidst kombineres alle modellerne[^14].
+
+[^14]: James et al., An Introduction to Statistical Learning.
+
+### XGBoost
+
+![](fotos/xg_model.jpg){width="100%"}
+
+Ved XGBoost laves første model som et simpelt træ, hvorefter residualer beregnes som ”mål” for det næste træ. Den nye model trænes på fejlene og forsøger at reducere fra den foregående model. Denne proces gentages N gange og modellerne kombineres. XGBoost er en optimeret version af gradient boosting. Den er hurtigere, håndterer overfitting bedre vha. L1 og L2 penalty og har en indbygget håndtering af manglende værdier[^15]. Den understøtter både CPU og GPU, hvilket betyder at modellen kan køre både på en CPU og en GPU. CPU er den almindelige processer i computeren, som er god til mange forskellige opgaver og er fleksibel, men ikke altid superhurtig til matematiske beregninger. Denne er brugt til at aktivere computeren kerner, så man ved plan(multisession) fra future-pakken kan køre flere sessions uafhængigt af hinanden. Dette gjorde at behandlingstiden for modellen tog ca. 7 i stedet for 20 minutter - alt afhængigt at antal kerner. Her tunes trees, mtry og learn_rate.
+
+[^15]: James et al., An Introduction to Statistical Learning.
+
+### Random Forest model
+
+![](fotos/randf_model.jpg){width="100%"}
+
+Random Forest er en ensemblemetode, der kombinerer mange beslutningstræer, som hver er trænet på tilfældige datasubsets og features. Den reducerer overfitting og forbedrer modellens robusthed og nøjagtighed[^16]. Den tunes på mtry og min_n for at finde den bedste kombination.
+
+[^16]: James et al., An Introduction to Statistical Learning.
+
+### Support Vector Machine
+
+![](fotos/svm_model.jpg){width="100%"}
+
+Den lineære SVM bruger en lineær beslutningsgrænse til at adskille klasserne. Den egner sig bedst til problemer, hvor dataene er lineært separerbare. Den tunes på cost og margin, som styrer penaliseringsgraden og bredden af marginen mellem klasserne. SVM'en med den radiale basisfunktion bruger en ikke-lineære beslutningsgrænse, som dannes via en Radial Basis Function. Den er bedst egnet til problemer, hvor dataene ikke er lineært separerbare, og der er behov for en mere fleksibel model[^17]. Den tunes på cost (penaliseringsgraden), rbf_sigma (bredden på den radiale basisfunktion) og margin(bredden af marginen mellem klasserne).
+
+[^17]: James et al., An Introduction to Statistical Learning.
+
+\newpage
+
+## Evaluering og sammenligning
+
+I dette afsnit gennemgår vi relevante metrikker, til at vurdere modellens performance. Formålet er at sammenligne modeller på tværs af fælles mål og identificere den mest velegnede.
+
+### Confusion Matrix
+
+Confusion matrix viser antallet af sande positive, falske positive, sande negative og falske negative forudsigelser. Den giver et fuldstændigt billede af, hvordan modellen præsterer[^18].
+
+[^18]: Se bilag 5.
+
+### Accuracy
+
+Accuracy måler andelen af korrekte forudsigelser.
+
+Udregnes sådan: $Accuracy=(TP+TN)/(TP+TN+FP+FN)$
+
+```{r accuracy}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview |> 
+  select(wflow_id, accuracy)
+
+```
+
+BUVI kan anvende accuracy til at vurdere den overordnede præcision af churn-modellen. Det giver et samlet billede af, hvor mange forudsigelser der er korrekte ud af alle forudsigelser. Dette mål er særligt relevant, hvis alle fejltyper (falske positive og falske negative) har nogenlunde samme konsekvens.
+
+### Sensitivity
+
+Måler andelen af sande positive ud af alle faktiske positive tilfælde.
+
+Beregnes som: $Sensitivity=TP/(TP+FN)$ [^19].
+
+[^19]: Wikipedia, Sensitivity and specificity, https://en.wikipedia.org/wiki/Sensitivity_and_specificity (tilgået 1. maj 2025).
+
+```{r sens}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview |> 
+  select(wflow_id, sens) |> 
+  arrange(desc(sens))
+
+```
+
+Hvis sensitivity er høj, betyder det at modellen fanger de fleste churnere. Dette kan hjælpe BUVI til at igangsætte proces for medlemsfastholdelse ved de korrekte virksomheder.
+
+### Specificity
+
+Specificity måler andelen af sande negative ud af alle faktiske negative tilfælde. Denne er god til korrekt at identificere dem der ikke churner.\
+\
+Udregnes sådan: $Specificitet = TN/(TN+FP)$
+
+```{r spec}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview |> 
+  select(wflow_id, spec) |> 
+  arrange(desc(spec))
+
+```
+
+Den hjælper BUVI til ikke at bruge unødvendige ressourcer på medlemmer, som ikke churner alligevel.\
+
+### F1-Score
+
+F1-score er det harmoniske gennemsnit af precision og recall og bruges, når man ønsker en balance mellem de to. Den er særlig nyttig ved ubalancerede datasæt, f.eks. hvis der er meget flere negative tilfælde end positive.
+
+F1-score beregnes sådan: $F1-score=2(Precision*Recall)/(Precision+Recall)$ [^20]
+
+[^20]: Wikipedia, F-score, https://en.wikipedia.org/wiki/F-score (tilgået 1. maj 2025).
+
+```{r f1}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview |> 
+  select(wflow_id, f_meas) |> 
+  arrange(desc(f_meas))
+
+```
+
+F1-scoren kan i et forretningsmæssigt perspektiv være vigtigt for BUVI, for at afveje konsekvenserne af fejl, altså hvad det koster virksomheden, når modellen tager fejl. I churnanalysen kan BUVI derfor ved en lav F1-score overse medlemmer som churner, men f.eks. bruge unødvendige omkostninger på medlemmer som man forudsiger churner, men ikke gør det i virkeligheden.
+
+### AUC-ROC
+
+```{r rockurve_alone}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Plot de 5 bedste modeller
+ggplot(roc_curves_top5, aes(x = 1 - specificity, y = sensitivity, color = wflow_id)) +
+  geom_line() +
+  geom_abline(lty = 2) +
+  labs(title = "ROC-kurver for de 5 bedste modeller (10-fold CV)",
+       x = "1 - Specificitet", y = "Sensitivitet")
+```
+
+AUC-ROC-kurven viser forholdet mellem true positive rate og false positive rate på tværs af forskellige tærskler. AUC-værdien summerer modellens evne til at skelne mellem klasserne. Arealet under kurven, AUC, angiver det overordnede resultat for en classifier for alle grænseværdier. $0,5 > AUC =$ God classifier og $0,5 < AUC$ = Classifieren klarer sig ikke bedre end tilfældighederne.
+
+```{r rocauc_col}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview |> 
+  select(wflow_id, roc_auc) |> 
+  arrange(desc(roc_auc))
+
+```
+
+For at udvælge klassifikationsmodellen for BUVI anvendes AUC til at vurdere og sammenligne forskellige modeller. AUC måler modellens evne til korrekt at skelne mellem churnere og ikke-churnere, uanset hvor beslutningsgrænsen sættes. Dette gør det muligt, at identificere den model, der generelt har den bedste evne til at skelne mellem churn og medlem, uafhængigt af threshold[^21]. Dermed kan man for BUVI træffe mere kvalificerede beslutninger om, hvilken model der bedst understøtter forretningsmål for medlemsindsatser, så de undgår at overse churnere eller at spilde ressourcer på ”falske” churnere.
+
+[^21]: James et al., An Introduction to Statistical Learning.
+
+Overordnet kan vi se et mønster ved alle modeller, som viser at alle metrikkerne følger samme stigning og fald. Beslutningstræ og KNN skiller sig ud, da de ligger lavere på metrikkerne. Derudover er der en højere sensivity for den radiale SVM, men også et fald i specificity.
+
+```{r log_valgt_gridow}
+#| echo: false
+#| warning: false
+#| message: false
+
+grid_overview_long <- grid_overview %>%
+  pivot_longer(
+    cols = c(accuracy, f_meas, roc_auc, sens, spec),
+    names_to = "metric",
+    values_to = "value"
+  )
+
+# Plot
+ggplot(grid_overview_long, aes(x = metric, y = value, color = wflow_id, group = wflow_id)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Modelperformance fordelt på metrikker",
+    x = "Metrik",
+    y = "Værdi",
+    color = "Model"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+## Modeludvælgelse
+
+Vi har valgt at bruge logistisk regression til forudsigelse af om BUVI’s medlemmer churner eller forbliver medlemmer.
+
+Ud fra vores forskellige metrikker ift. Præcision af modellen, valgte vi at fokusere på AUC, da den måler hvor god modellen er til at skelne mellem de to klasser, hvilket vurderede som den vigtigste faktor for BUVI’s nuværende situation.
+
+En logistisk regression er en simplere model end XGBoost og Random Forest, som begge klarer sig lidt bedre. Disse er ikke valgt, da vi går efter et princip om at vælge den mest simple model, som af disse, er lettest fortolkelig. Ved den logistiske regression bruges elastic net, hvilket i et bias-variance trade-off reducerer varians og samtidig udvælger vigtige features. Dette gør at man undgår overfitting. Dvs. Elastic net øger bias en smule og reducerer variansen markant.
+
+```{r log_valgt_0}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+#| results: "hide"
+
+
+## Logistisk regression er valgt som model
+
+# best_results_log <- grid_results |> 
+#   extract_workflow_set_result("rec_logistic_reg") |> 
+#   select_best(metric = "roc_auc")
+# 
+# final_wf_log <- grid_results |> 
+#   extract_workflow("rec_logistic_reg") |> 
+#   finalize_workflow(best_results_log)
+# 
+# BUVI_last_fit_log <- final_wf_log |> 
+#   last_fit(data_split, metrics = BUVI_metrics)
+# 
+# collect_metrics(BUVI_last_fit_log)
+# 
+# write_rds(final_wf_log, "data/final_wf_log.rds")
+# write_rds(BUVI_last_fit_log, "data/BUVI_last_fit.rds")
+
+
+
+best_results_log <- grid_results |> 
+  extract_workflow_set_result("rec_logistic_reg") |> 
+  select_best(metric = "roc_auc")
+
+final_wf_log <- grid_results |> 
+  extract_workflow("rec_logistic_reg") |> 
+  finalize_workflow(best_results_log)
+
+BUVI_last_fit_log <- final_wf_log |> 
+  last_fit(data_split, metrics = BUVI_metrics)
+
+collect_metrics(BUVI_last_fit_log)
+
+
+#Random Forest---------------
+# best_results_log <- grid_results |> 
+#   extract_workflow_set_result("rec_naive_bayes") |> 
+#   select_best(metric = "sens")
+# 
+# final_wf_log <- grid_results |> 
+#   extract_workflow("rec_naive_bayes") |> 
+#   finalize_workflow(best_results_log)
+# 
+# BUVI_last_fit_log <- final_wf_log |> 
+#   last_fit(data_split, metrics = BUVI_metrics)
+# 
+# collect_metrics(BUVI_last_fit_log)
+```
+
+For den logistiske regression ser confusion matricen sådan ud, ud fra et threshold på 0,5:
+
+```{r log_valgt1}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+#| results: "hide"
+
+preds_log <- collect_predictions(BUVI_last_fit_log)
+
+```
+
+```{r log_valgt1.1}
+#| echo: false
+#| warning: false
+#| message: false
+
+yardstick::conf_mat(preds_log, truth = churn, estimate = .pred_class)
+
+```
+
+For at finde den optimale threshold har vi lavet en cost-benefit analyse, hvor vi har set på omkostninger ved TP og FP og derved nået frem til 0,39. Når man flytter klassifikationsgrænsen påvirkes TP og FP, da man ændrer balancen imellem dem.
+
+```{r log_valgt2}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+# Hent koefficienterne som matrix for den valgte lambda-værdi
+coefs <- as.matrix(
+  predict(glmnet_obj, type = "coefficients", s = best_results_log$penalty)
+)
+
+# Konverter til tibble og fjern intercept
+coefs_df <- tibble(
+  variabel = rownames(coefs),
+  koefficient = as.numeric(coefs)
+) %>%
+  filter(variabel != "(Intercept)")
+
+# Beregn odds ratio i procent og sorter
+coefs_df <- coefs_df %>%
+  mutate(
+    odds_ratio_pct = round((exp(koefficient) - 1) * 100, 2)  # f.eks. +15.3% eller -8.7%
+  ) %>%
+  arrange(desc(odds_ratio_pct))
+
+# Vis de vigtigste drivere
+print(coefs_df)
+
+
+#write_rds(coefs_df, "data/coefs.rds")
+```
+
+Analyse af optimal threshold:
+
+```{r log_valgt3}
+#| echo: true
+#| warning: false
+#| message: falseDet
+
+# Analyse af optimal threshold
+#cost_fn <- 2748 # Omkostning: falsk negativ /Korrekt gsn. kontigent pr. medlem er dog 6.066,- 
+#cost_fp <- cost_fn * 0.75  # Omkostning: falsk positiv, 
+# Hvis vi antager at der tilbydes 25% rabat til 
+# "churnet"-predictions 
+# så er det gennemsnitlig medlemskabspris - 25%
+
+cost_fn <- 6066.28         # Korrekt gsn. kontigentpris pr. medlem er dog 6.066 - 3,7 mio omsætning,- 
+cost_fp <- cost_fn * 0.25  # Tidligere fejlberegnet. Da man kun mister 25% for en False Positive
+
+```
+
+```{r log_valgt4}
+#| echo: false
+#| warning: false
+#| message: false
+
+thresholds <- seq(0, 1, by = 0.01)
+
+# Funktion til at beregne omkostning for et threshold
+cost_for_threshold <- function(thresh, df) {
+  df <- df %>%
+    mutate(.pred_class = if_else(.pred_Churnet >= thresh, "Churnet", "Medlem"))
+  # Confusion matrix counts
+  fn = sum(df$.pred_class == "Medlem" & df$churn == "Churnet") # False Negative
+  fp = sum(df$.pred_class == "Churnet" & df$churn == "Medlem") # False Positive
+  cost = fn * cost_fn + fp * cost_fp
+  tibble(threshold = thresh, fn = fn, fp = fp, cost = cost)
+}
+
+# Map over alle thresholds
+cost_df <- map_dfr(thresholds, cost_for_threshold, df = preds_log)
+
+# Find minimum
+opt_thresh <- cost_df %>% filter(cost == min(cost)) %>% slice(1)
+
+```
+
+Den optimale threshold findes:
+
+```{r log_valgt5}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+# Plot
+ggplot(cost_df, aes(x = threshold, y = cost)) +
+  geom_line() +
+  geom_point(data = opt_thresh, color = "red", size = 2) +
+  labs(title = paste0("Optimal threshold = ", round(opt_thresh$threshold, 2)),
+       x = "Threshold for Churnet", y = "Samlet omkostning")
+
+```
+
+```{r log_valgt6}
+#| echo: false
+#| warning: false
+#| message: false
+
+final_preds <- preds_log %>%
+  mutate(
+    churn_predicted = as.factor(if_else(.pred_Churnet >= opt_thresh$threshold, "Churnet", "Medlem"))
+  )
+
+```
+
+Ud fra denne threshold ser confusionsmatrixen nu sådan ud for den valgte logistiske regression:
+
+```{r log_valgt7}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+conf_mat(final_preds, truth = churn, estimate = churn_predicted)
+
+```
+
+\newpage
+
+# Datavisualisering
+
+I dette kapitel præsenteres de vigtigste overvejelser og valg i arbejdet med at visualisere medlemsdata på en forståelig måde gennem webapplikationen til BUVI.
+
+Først gøres datasættet klar til visualisering, ved at indhente navne fra CVR-data og resterende kode genereres i Shiny.
+
+```{r shiny_dataset}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+dataset <- read_rds("data/dataset_done.rds") 
+cvr_data <- readxl::read_xlsx("data/cvr_data.xlsx")
+```
+
+```{r cvr_navne}
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+cvr_navne <- cvr_data |> 
+  select(cvr, virksomhedsnavn = Virksomhedsnavn) |> 
+  mutate(cvr = as.character(cvr))
+
+dataset_shiny <- dataset |> 
+  left_join(cvr_navne, by = c("cvr_nummer" = "cvr"))
+
+dataset_shiny <- dataset_shiny |>
+  mutate(priskategori = case_when(
+    ansatte < 2 ~ "1550 kr.",
+    ansatte < 5 ~ "2770 kr.",
+    ansatte < 10 ~ "3880 kr.",
+    ansatte < 25 ~ "6760 kr.",
+    ansatte < 50 ~ "9750 kr.",
+    ansatte <= 100 ~ "11960 kr.",
+    ansatte > 100 ~ "15510 kr."
+  ),
+  omsætning = parse_number(priskategori)
+  )
+
+dataset_shiny <- dataset_shiny |>
+  relocate(virksomhedsnavn, cvr_nummer, p_nummer, 
+           virksomhedstype, ansatte, priskategori, 
+           indmeldingsår, lokal, nace_sektion)
+
+# Træn på hele datasættet
+final_fit <- fit(final_wf_log, data = dataset)
+
+# Forudsig sandsynligheder
+churn_preds <- predict(final_fit, new_data = dataset, type = "prob") %>%
+  bind_cols(dataset_shiny)  # Så du har id'er, firmainfo mv. med
+
+# Tilføj churn-beslutning baseret på threshold = 0.39 / JING: ændret til 0,15 i min løsning
+churn_preds <- churn_preds %>%
+  mutate(
+    prioritets_score = .pred_Churnet * omsætning,
+  )
+  
+churn_ranked <- churn_preds |> 
+  arrange(desc(prioritets_score)) |> 
+  relocate(prioritets_score) # Højeste prioritet først
+
+write_rds(churn_ranked, "data/data_shiny.rds")
+write_rds(final_fit, "data/final_fit.rds")
+```
+
+## Brand guideline
+
+I udviklingen af vores applikation har vi baseret det visuelle udtryk på en analyse af Business Viborgs digitale tilstedeværelse, herunder deres hjemmeside. På baggrund af denne analyse har vi udarbejdet en visuel guideline, som definerer farvepalette, typografi, logoanvendelse og grafisk stil. Denne guideline har fungeret som en rettesnor i designprocessen med henblik på at skabe et konsistent og genkendeligt udtryk, der stemmer overens med BUVI’s eksisterende identitet. Guidelinen er vedlagt som bilag 6.
+
+### CRAP-analyse
+
+For at sikre, at informationerne i værktøjet bliver præsenteret klart, brugervenligt og overskueligt, har vi brugt CRAP-modellen som grundlag for de grafiske og layoutmæssige valg. Anvendelsen af CRAP-principperne har således bidraget til at udvikle en løsning, der ikke alene afspejler BUVI’s visuelle identitet, men som også fremmer funktionalitet, overskuelighed og en positiv brugeroplevelse. Se bilag 7.
+
+## Shiny App
+
+```{r shiny}
+#| eval: false
+#| echo: false
+#| warning: false
+#| message: false
+#| fig.show: "hide"
+
+#Kode til Shiny kan ses her
+
+```
+
+Til udviklingen af applikationen har vi anvendt Shiny, som muliggør visualisering af interaktive grafer, tabeller og modeller direkte i browseren[^22]. Shiny gør det muligt for brugeren dynamisk at udforske datasæt, justere parametre og analysere modelresultater i realtid. Denne teknologi understøtter fleksibel datavisualisering og giver mulighed for, at både medlemskonsulenter og ledelse kan få adgang til aktuel viden om churn-risiko blandt medlemsvirksomheder på en brugervenlig måde.
+
+[^22]: Layouts – Shiny for R, https://shiny.posit.co/r/layouts/ (tilgået 30. april 2025)
+
+## Visualiseringsvalg
+
+Visualiseringerne i vores Shiny-applikation er opdelt i to brugerroller: leder og konsulent. Begge visninger er skræddersyet til at understøtte arbejdet med churn blandt medlemsvirksomheder, men med forskelligt fokus.
+
+Opdelingen i roller er valgt ud fra både praktiske hensyn og etiske overvejelser om datasikkerhed og informationsadgang.
+
+**Lederens** interface giver et strategisk overblik over medlemsbasen. Ved login vises centrale nøgletal som antal medlemmer, andel i højrisiko og gennemsnitlig churn-risiko.
+
+![](fotos/visual_leder.png){width="100%"}
+
+Derudover visualiseres churn-rate fordelt på segmenter som branche, virksomhedstype og indmeldingsår via andelsdiagrammer. Appen viser også churn i relation til eventdeltagelse og medlemsengagement. Gennemsnitlige målinger som antal møder og omsætning sammenlignes mellem churnede og aktive virksomheder i spejlede søjlediagrammer. En interaktiv medlemsoversigt med mulighed for filtrering og eksport understøtter videre analyse.
+
+![](fotos/visual_leder1.png){width="100%"}
+
+**Konsulenten** arbejder operationelt med konkrete virksomheder. Dashboardet viser egne måltal, herunder kontaktaktivitet og højrisikokunder.
+
+![](fotos/visual_konsulent.jpg){width="100%"}
+
+I KundeKompasset kan churn-sandsynlighed simuleres for en valgt virksomhed baseret på input som antal møder og sidste kontakt. Resultatet vises både som procenttal og i et pie chart.
+
+![](fotos/visual_konsulent1.jpg){width="50%"}
+
+En tabel over top-risikovirksomheder muliggør hurtig kontaktregistrering, som gemmes og vises i en historiktabel.
+
+![](fotos/visual_konsulent2.jpg){width="35%"}
+
+Endelig præsenteres konsulenten for de faktorer, der ifølge modellen har størst positiv og negativ effekt på churn-risiko, hvilket giver et datadrevet grundlag for prioritering og handling.
+
+![](fotos/visual_konsulent3.jpg){width="100%"}
+
+\newpage
+
+# Implementering og adgang til app
+
+Formålet med deployment er at gøre den udviklede churn-model anvendelig i praksis[^23], så BUVI kan bruge resultaterne aktivt i deres medlemsarbejde og markedsføring.
+
+[^23]: CRISP-DM 2.0, https://www.datascience-pm.com/crisp-dm-2/ (tilgået 30. april 2025)
+
+Appen implementeres igennem Shinyapps.io, hvilket muliggør nem adgang til modellen via en internetbrowser uden behov for lokal installation. Dette er gjort gennem et rollebaseret login, udviklet med shinyauthr.
+
+Ved at integrere modellen i en Shiny-app skabes en direkte kobling mellem dataanalyse og forretningsmæssig handling, hvilket understøtter BUVI i at arbejde proaktivt med medlemsfastholdelse.
+
+**Link til app:** \[indsæt link\]
+
+**Log ind som leder:**\
+Brugernavn: leder\
+Adgangskode: 1234
+
+**Log ind som konsulent:**\
+Brugernavn: konsulent\
+Adgangskode: 1234
+
+\newpage
+
+# Juridiske overvejelser
+
+Gennem arbejdet med churn-analysen for BUVI har vi fået indsigt i dele af organisationens medlemsdata, hvilket har givet anledning til en række juridiske og etiske overvejelser om hvordan personoplysningerne opbevares og behandles, både i forhold til den løsning vi har udviklet, og i forhold til virksomhedens generelle håndtering af medlemsdata. I det følgende afsnit vil vi drøfte de mest relevante aspekter og komme med konkrete anbefalinger ift. vores løsning.
+
+### Indsamling og behandling
+
+BUVI indsamler løbende forskellige personoplysninger på deres medlemsvirksomheder, herunder kontaktoplysninger og aktivitetsdata fra f.eks. netværksmøder og events[^24]. Disse oplysninger lagres i et fælles CRM-system, som opereres i regi af Erhvervsfremmestyrelsen[^25], men BUVI fungerer som dataansvarlig jf. den databehandleraftale der er mellem dem [^26]. Når personoplysningerne først er indsamlet til ét formål, rejser det spørgsmålet om de lovligt kan anvendes i en ny kontekst som eksempelvis en churnanalyse. Jf. GDPR-artikel 5 [^27] må personoplysninger kun indsamles og anvendes til klart definerede formål. Hvis data skal bruges til andet end det prædefineret formål, er det nødvendigt med et nyt behandlingsgrundlag [^28].
+
+[^24]: Oplæg v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility (2. april 2025)
+
+[^25]: Oplæg v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility (2. april 2025)
+
+[^26]: Beskyttelse af dine data - GDPR, Business Viborg, https://businessviborg.dk/om-os/beskyttelse-af-dine-data-gdpr/ (tilgået\[22. april 2025\])
+
+[^27]: Artikel 5 - Principper for behandling af personoplysninger, GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-2-principper/artikel-5-principper-for-behandling-af-personoplysninger/ (tilgået\[22. april 2025\])
+
+[^28]: De 7 principper - Formålsbegrænsing, GDPR, https://gdpr.dk/persondataforordningen/de-7-principper/#elementor-toc\_\_heading-anchor-1 (tilgået\[22. april 2025\])
+
+### Opbevaring og sikkerhed
+
+I forbindelse med udviklingen af churnanalysen og det tilhørende dashboard opstår ligeledes overvejelser om, hvordan dataene opbevares forsvarligt og sikkert. Jf. GDPR-artikel 32 [^29] stilles der krav om passende tekniske og organisatoriske sikkerhedsforanstaltninger, og det betyder i praksis, at der fra BUVI’s side bør implementeres adgangskontrol og datalogning. Det er vigtigt, at BUVI får sikret sig at kun medarbejdere med et relevant, arbejdsrelateret behov har adgang til deres samlede data, såvel som til churnanalyse og dashboardet, og det bør ligeledes dokumenteres, hvem der har tilgået data og hvornår [^30].\
+I vores optik bør BUVI reflektere over hvordan deres data opbevares over tid. Da churnanalysen bygger på historiske data, er det vigtigt at vurdere hvor længe disse oplysninger fortsat er nødvendige i forhold til formålet, som følge af opbevaringsbegrænsningsprincippet [^31] og etablere automatiske sletterutiner eller anonymisering af ældre data, der ikke længere er aktuelle for analysen. Dette skyldes både et lovgivningsmæssig hensyn, men også et etisk hensyn om at understøtte en ansvarlig datakultur.
+
+[^29]: Artikel 32 - Behandlingssikkerhed, GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-4-dataansvarlig-og-databehandler/artikel-32-behandlingssikkerhed/ (tilgået(22. april 2025\])
+
+[^30]: Datatilsynet
+
+[^31]: De grundlæggende principper, Datatilsynet, https://www.datatilsynet.dk/regler-og-vejledning/grundlaeggende-begreber/hvad-er-dine-forpligtelser/de-grundlaeggende-principper (tilgået\[22. april 2025\])
+
+### Anonymiserede data i datasættet
+
+GDPR opdeler personoplysninger i flere kategorier, som hører under forskellige beskyttelsesniveauer, som BUVI også er underlagt. Almindelige personoplysninger er primært de oplysninger som er anonymiseret i udleverede datasæt og disse kræver stadig beskyttelse, men er ikke underlagt samme skærpede krav som følsomme oplysninger. Der kan opstå juridiske overvejelser, når flere datakilder kobles sammen i analysen, da det i praksis kan være muligt at ”skabe” personhenførbare data, selvom de delvist er anonymiserede. Dette er især gældende for interne medarbejdere med indsigt i medlemskredsen. Det understreger behovet for, at BUVI foretager en grundig vurdering af både formålets forenelighed og det datagrundlag, der anvendes, herunder hvordan data sikres, minimeres og dokumenteres.
+
+### Kundernes rettigheder
+
+Et vigtigt skridt i at sikre en etisk datakultur er gennemsigtighed. Dette er også en forankret rettighed for dataejerne, i dette tilfælde medlemsvirksomhederne, jf. GDPR-lovgivningen [^32]. Det medfører retten til at få indsigt i den indsamlede data på sig selv og i visse tilfælde sletning jf. GDPR, artikel 15-17 [^33]. Vores anbefaling til BUVI er derfor, at de bør overveje, hvordan de kan informere deres medlemmer om, at deres data kan anvendes i interne analyser, som f.eks. churn-analysen. Dette er igen både et juridisk og etisk anliggende, hvor det for BUVI handler om at skabe tillid gennem en tydelig kommunikation og åbenhed.
+
+[^32]: Artikel 12 - Gennemsigtig oplysning, meddelser og nærmere regler for udøvelsen af den registreredes rettigheder, GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-12-gennemsigtig-oplysning-meddelelser-og-naermere-regler-for-udovelsen-af-den-registreredes-rettigheder/ (tilgået\[22. april 2025\])
+
+[^33]: Artikel 15 - Den registreredes indsigtsret, GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-15-den-registreredes-indsigtsret/ (tilgået\[22. april 2025\])
+
+    Artikel 16 - Ret til berigtigelse, GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-16-ret-til-berigtigelse/ (tilgået\[22. april 2025\])
+
+    Artikel 17 - Ret til sletning (retten til at blive glemt), GDPR, https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-17-ret-til-sletning-retten-til-at-blive-glemt/ (tilgået\[22. april 2025\])
+
+### D-mærket
+
+D-mærket er en dansk certificeringsordning, der viser at organisationen lever op til krav om datasikkerhed, databeskyttelse og digital etik [^34]. For en organisation som BUVI, der indsamler en bred vifte af data på deres medlemmer, kunne en certificering være en måde at styrke tilliden blandt eksisterende og nye potentielle medlemmer. Samtidig kan den bidrage til en mere systematisk tilgang til datahåndtering og sikre at de interne processer lever op til gældende lovgivning og etiske standarder. Omvendt indebærer certificeringen både en økonomisk investering, hvor den endelige pris på certificeringen afhænger af virksomhedstype og størrelse [^35] samt en betydelig intern indsats i form af arbejdstimer og eventuelle tilpasninger af nuværende arbejdsgange.
+
+[^34]: Hvad er D-mærket?, D-mærket, https://www.d-maerket.dk/bliv-d-maerket/hvad-er-d-maerket (tilgået\[22. april 2025\])
+
+[^35]: Grupper og priser, D-mærket, https://www.d-maerket.dk/bliv-d-maerket/grupper-og-priser (tilgået\[22. april 2025\])
+
+# Juridiske anbefalinger
+
+For at sikre overholdelse af GDPR og understøttelse af en ansvarlig datakultur anbefales der følgende for BUVI.
+
+1\. Gennemgå og dokumentér, om eksisterende medlemsdata lovligt kan anvendes til nye formål som for eksempel churnanalyse.
+
+2\. Sørg for, at kun relevante medarbejdere har adgang til medlemsdata og analyseværktøjer.
+
+3\. Fastlæg en klar politik for opbevaring af data, og etablér sletterutiner og anonymisering af ældre oplysninger, der ikke længere er nødvendige.
+
+4\. Vær opmærksom på, at kombinationen af delvist anonymiserede datakilder kan føre til re-identifikation.
+
+5\. Informer medlemmerne om, at deres data anvendes til interne analyser, f.eks. via en opdateret privatlivspolitik.
+
+6\. Undersøg muligheden for at opnå D-mærket som en måde at dokumentere GDPR-overholdelse og øge tilliden blandt medlemmer og samarbejdspartnere
+
+\newpage
+
+# Konklusion
+
+I denne opgave har vi udviklet en churn-analyse for BUVI, som sigter mod at hjælpe organisationen med at forudsige, hvilke medlemmer der har høj risiko for at forlade organisationen, samt at målrette medlemsindsatser for at fastholde disse medlemmer. Ved at anvende forskellige præstationsmålinger som F1-score og AUC-ROC har vi evalueret og valgt en passende klassifikationsmodel.
+
+Valget af logistisk regression som den primære model blev truffet, da den giver en god balance mellem præcision og fortolkelighed, samtidig med at den undgår overfitting gennem brug af elastic net.
+
+Modellen er integreret i en Shiny-app, som giver BUVI’s medlemskonsulenter og ledelse mulighed for at visualisere churn-risiko, analysere churn-drivere og træffe informerede beslutninger. Appen tilbyder skræddersyede dashboards afhængig af brugerrollen, hvilket sikrer, at både konsulenter og ledere får den nødvendige indsigt til at handle hurtigt og målrettet.
+
+I forhold til de juridiske overvejelser har vi fremhævet betydningen af at overholde GDPR i behandlingen af persondata. Anvendelsen af medlemsdata til churn-analyse kræver et klart behandlingsgrundlag, og BUVI bør sikre sig, at deres databehandling er i overensstemmelse med lovgivningen. Vi anbefaler, at BUVI overvejer at implementere strikse adgangskontroller og sletterutiner, samt at de informerer medlemmerne om, hvordan deres data anvendes til analyser. Derudover foreslår vi, at BUVI overvejer at opnå D-mærket som et skridt mod at styrke tilliden til deres databehandling og vise, at de overholder de nødvendige sikkerheds- og etiske standarder.
+
+Samlet set giver denne churn-analyse BUVI et effektivt værktøj til at identificere medlemmer med høj churn-risiko og træffe målrettede beslutninger om fastholdelse, samtidig med at der tages højde for både tekniske og juridiske aspekter af datahåndtering. Dette værktøj vil kunne bidrage til en mere proaktiv og datadrevet medlemsstrategi.
+
+\newpage
+
+# Kildeliste
+
+## Interne datakilder
+
+-   Medlemsdata modtaget fra Bjarne (intern kilde).
+
+-   Sørensen, B. T. (2025). Market Basket Analysis – DA \[PowerPoint-præsentation\]. Fremlagt i 2025.
+
+## Bøger
+
+-   James, G., Witten, D., Hastie, T., & Tibshirani, R. (2023). An Introduction to Statistical Learning: With Applications in R (2. udg.). Springer.
+
+## Websites
+
+-   **Business Viborg. (2025).** Beskyttelse af dine data (GDPR). <https://businessviborg.dk/om-os/beskyttelse-af-dine-data-gdpr/>
+
+<!-- -->
+
+-   **Business Viborg. (2025).** Business Viborg. <https://www.businessviborg.dk>
+
+<!-- -->
+
+-   **D-mærket. (2024).** Grupper og priser. <https://www.d-maerket.dk/bliv-d-maerket/grupper-og-priser>
+
+<!-- -->
+
+-   **D-mærket. (2025).** For virksomheder. <https://www.d-maerket.dk/virksomheder>
+
+<!-- -->
+
+-   **D-mærket. (2025).** Hvad er D-mærket?. <https://www.d-maerket.dk/bliv-d-maerket/hvad-er-d-maerket>
+
+<!-- -->
+
+-   **DataScience PM. (2025).** CRISP-DM 2.0. <https://www.datascience-pm.com/crisp-dm-2/>
+
+<!-- -->
+
+-   **Datatilsynet. (2022).** Vejledning om cloud. <https://www.datatilsynet.dk/Media/637824109172292652/Vejledning%20om%20cloud.pdf>
+
+<!-- -->
+
+-   **Datatilsynet. (2025).** Det skal du vide om databeskyttelse. <https://www.datatilsynet.dk/regler-og-vejledning/grundlaeggende-begreber/hvad-er-databeskyttelse>
+
+<!-- -->
+
+-   **Datatilsynet. (2025).** Rollefordeling: Dataansvarlig og databehandler. <https://www.datatilsynet.dk/regler-og-vejledning/grundlaeggende-begreber/rollefordeling-dataansvarlig-og-databehandler>
+
+<!-- -->
+
+-   **Europa.eu. (2025).** Data Protection – GDPR. <https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_da.htm>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 12 – Gennemsigtig oplysning mv. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-12-gennemsigtig-oplysning-meddelelser-og-naermere-regler-for-udovelsen-af-den-registreredes-rettigheder/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 15 – Indsigtsret. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-15-den-registreredes-indsigtsret/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 16 – Ret til berigtigelse. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-16-ret-til-berigtigelse/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 17 – Ret til sletning. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-3-den-registreredes-rettigheder/artikel-17-ret-til-sletning-retten-til-at-blive-glemt/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 28 – Databehandler. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-4-dataansvarlig-og-databehandler/artikel-28-databehandler/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 32 – Behandlingssikkerhed. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-4-dataansvarlig-og-databehandler/artikel-32-behandlingssikkerhed/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** Artikel 5 – Principper for behandling af personoplysninger. <https://gdpr.dk/databeskyttelsesforordningen/kapitel-2-principper/artikel-5-principper-for-behandling-af-personoplysninger/>
+
+<!-- -->
+
+-   **GDPR.dk. (2025).** De 7 principper. <https://gdpr.dk/persondataforordningen/de-7-principper/#elementor-toc__heading-anchor-1>
+
+<!-- -->
+
+-   **Online Insights. (2025).** Hvad er eksplorativ dataanalyse? Lær mere her. <https://online-insights.dk/hvad-er-eksplorativ-dataanalyse-laer-mere-her/>
+
+<!-- -->
+
+-   **Posit. (U.Å.).** Shiny Layouts. <https://shiny.posit.co/r/layouts/>
+
+<!-- -->
+
+-   **Tidymodels. (2025).** Get started with Tidymodels. <https://www.tidymodels.org/start/>
+
+<!-- -->
+
+-   **Virksomhedsguiden. (2025).** Sådan behandler og beskytter du personoplysninger. <https://virksomhedsguiden.dk/content/ydelser/saadan-behandler-og-beskytter-du-personoplysninger/dcd10353-654b-429f-b05a-684313754fdd/>
+
+<!-- -->
+
+-   **Wikipedia. (2025).** F-score. <https://en.wikipedia.org/wiki/F-score>
+
+<!-- -->
+
+-   **Wikipedia. (2025).** Sensitivity and specificity. <https://en.wikipedia.org/wiki/Sensitivity_and_specificity>
+
+\newpage
+
+# Bilagsoversigt
+
+-   Bilag 1: Udleverede Powerpointpræsentationer v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility onsdag den 2. april 2025
+-   Bilag 2: Resume af oplæg v. Michael Freundlich
+-   Bilag 3: Overblik over udleverede datasæt
+-   Bilag 4: Klargøring, rensning og join af datasæt
+-   Bilag 5: Confusion Matrix
+-   Bilag 6: Business Viborgs visuelle identitet
+-   Bilag 7: CRAP modellen
+-   Bilag 8: Kode til Shiny app
