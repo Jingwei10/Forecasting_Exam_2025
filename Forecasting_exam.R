@@ -151,10 +151,16 @@ fc <- model_train |> forecast(h = "12 months")
 
 # 4.4 Eksempel: Visualisering for én serie (fx Region Midtjylland, Mænd)
 fc |> 
-  filter(kon == "Mænd", region == "Region Midtjylland") |> 
-  autoplot(train_data) +
-  labs(title = "Modeller og forecast: Region Midtjylland, Mænd",
-       y = "Arbejdsløshed (%)")
+  filter(region == "Region Sjælland") |> 
+  autoplot(data) +
+  labs(
+    title = "Forecasts for 2020 – Region Sjælland (begge køn)",
+    y = "Arbejdsløse pr. 10.000 personer",
+    x = "Tid"
+  ) +
+  facet_wrap(~ kon) +
+  theme_minimal()
+
 
 # 4.5 Residualanalyse for én model og én serie
 model_train |> 
