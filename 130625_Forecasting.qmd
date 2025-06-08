@@ -58,7 +58,6 @@ Bjarne Taulo Sørensen \\
 
 \thispagestyle{empty}
 
-
 \newpage
 
 \pagenumbering{arabic}
@@ -89,12 +88,11 @@ Med udgangspunkt i metoder som ARIMA, ETS og en simpel benchmarkmodel er formål
 
 ## Afgrænsning
 
-Analysen er udelukkende baseret på de udleverede data og fokuserer på anvendelse og vurdering af klassiske forecasting-metoder. 
+Analysen er udelukkende baseret på de udleverede data og fokuserer på anvendelse og vurdering af klassiske forecasting-metoder.
 
-Der inddrages ikke eksterne faktorer som COVID-19, konjunkturændringer eller politiske tiltag. Der gives heller ikke forretningsmæssige anbefalinger, da formålet er metodisk – ikke strategisk. 
+Der inddrages ikke eksterne faktorer som COVID-19, konjunkturændringer eller politiske tiltag. Der gives heller ikke forretningsmæssige anbefalinger, da formålet er metodisk – ikke strategisk.
 
 Fokus er således på at demonstrere korrekt og fagligt funderet anvendelse af tidsserieanalyse og forecasting-teknikker i en struktureret, reproducerbar analyse.
-
 
 ### Anvendelse af AI-værktøj
 
@@ -108,36 +106,213 @@ I dette afsnit afklares centrale begreber og forkortelser, der anvendes gennem o
 
 Opgaven er opbygget i overensstemmelse med en klassisk tilgang til tidsserieanalyse. Først gennemføres en eksplorativ dataanalyse (EDA), hvor datasættet undersøges for trend, sæsonvariation og andre karakteristika gennem visualisering, deskriptiv statistik og STL-dekomposition. Herefter følger modelvalgsfasen, hvor tre modeller – ARIMA, ETS og en simpel benchmarkmodel – estimeres for hver tidsserie. Modellerne evalueres gennem time series cross-validation med fokus på RMSE og MAPE, hvorefter den bedst performende model vælges for hver serie. Afslutningsvis foretages forecast for 2020 med tilhørende prædiktionsintervaller, efterfulgt af en sammenlignende vurdering og konklusion.
 
-
 # Data og forberedelse
+
 Analysen er baseret på et datasæt med månedlige arbejdsløshedstal i Danmark fra januar 2007 til december 2019. Data er opdelt på køn (mænd og kvinder) og region (de fem danske regioner), hvilket resulterer i ti separate tidsserier. Datasættet er udleveret i forbehandlet format som en tsibble med korrekt angivne indeks- og nøglevariabler, hvilket gør det velegnet til modellering i fable/tidyverts-pakken.
 
-
 # Eksplorativ dataanalyse (EDA)
+
 ## Visualisering af trends og sæsonmønstre
+
+```{r}
+# FORMÅL:
+# - Forstå trends og sæsonmønstre i arbejdsløsheden
+# - Sammenligne regioner og køn
+# - Forberede modellerne ved at tjekke struktur og variation
+
+# VISUALISERING 1: Udvikling i arbejdsløshed over tid
+# Facet per region og køn for at identificere mønstre
+
+# Kun kvinder, alle regioner
+data |> filter((kon == "Kvinder")) |> 
+  autoplot(svalue) +
+  labs(
+    title = "Udvikling i arbejdsløshed hos kvinder pr. region",
+    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
+  ) + theme(legend.title = element_blank())
+```
+
+```{r}
+# Kun mænd, alle regioner
+data |> filter((kon == "Mænd")) |> 
+  autoplot(svalue) +
+  labs(
+    title = "Udvikling i arbejdsløshed hos mænd pr. region",
+    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
+  ) + theme(legend.title = element_blank())
+
+# Kun mænd, alle regioner
+data |> filter((kon == "Mænd")) |> 
+  autoplot(log(svalue)) +
+  labs(
+    title = "Med log: Udvikling i arbejdsløshed hos mænd pr. region",
+    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
+  ) + theme(legend.title = element_blank())
+```
+
+```{r}
+data |> 
+  autoplot(svalue) +
+  aes(colour = region) +
+  labs(
+    title = "Udvikling i arbejdsløshed pr. region og køn",
+    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
+  ) + facet_wrap(~ kon) +
+  theme(legend.title = element_blank())
+```
+
+```{r}
+data |> filter((kon == "Mænd")) |>
+  gg_season(svalue)
+```
+```{r}
+data |> filter((kon == "Kvinder")) |>
+  gg_season(svalue)
+```
+```{r}
+data |> filter(kon == "Kvinder") |> gg_subseries(svalue)
+```
+```{r}
+data |> filter(kon == "Mænd") |> gg_subseries(svalue)
+```
+
+
+
+```{r}
+# Begge køn, alle regioner
+data |> 
+  autoplot(svalue) +
+  aes(colour = kon, group = kon) +  
+  labs(
+    title = "Udvikling i arbejdsløshed pr. region og køn",
+    y = "Arbejdsløse pr. 10.000 personer",
+    x = "Tid",
+    colour = "Køn"
+  ) +
+  facet_wrap(~ region, scales = "free_y") +
+  scale_colour_manual(
+    values = c(
+      "Mænd"   = "steelblue",
+      "Kvinder"= "hotpink"
+    )
+  ) +
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+```
+
+### 1. Årlig sæsonrytme
+
+**Hvad ser vi?**\
+Hver kurve går op om vinteren og ned om sommeren.
+
+**Forestilling:** Tænk på et legetøjsfirma, der sender ekstra vikarer hjem i sommerferien – arbejdsløsheden falder, fordi der er flere sæsonansatte. Omvendt i vintermånederne, når der er færre byggeprojekter og udenlandsk turisme, stiger ledigheden.
+
+-   **Eksempel:** I Region Midtjylland ser vi i januar cirka 2,2 ledige pr. 10 000, men i juli falder det til under 1,0. Det gentager sig hvert år.
+
+### 2. Mænd versus kvinder (kønsgabet)
+
+**Hvad ser vi?\
+**Blå linjer (mænd) ligger næsten altid et lille nøk over pink (kvinder), og deres udsving er større.
+
+**Forestilling:** Mænd har ofte flere midlertidige “svingdørs-ansættelser” (tænk vikar i byggebranchen), så når økonomien hænger i bremsen, bliver de fyret først – og når det går fremad, kommer de også lidt hurtigere tilbage i job, hvilket giver større “bumps” i kurven.
+
+-   **Eksempel:** I 2010 ser vi en top på omkring 3,1 for mænd i Hovedstaden, mens kvinder når knap 2,6 – altså et klart løft for mænd.
+
+### 3. Finanskrise-effekten (2008–2012)
+
+**Hvad ser vi?**\
+En kraftig pendlende stigning i alle regioner omkring 2009–2012. Efter 2013 begynder alle linjer at falde i roligt tempo.
+
+**Forestilling:** Forestil dig en rutchebane: Først går kurven brat op (krise), så ned (genopretning), men alle “sidder i samme tog”, bare med forskellig højde på stigningen.
+
+-   **Eksempel:** Region Syddanmark går fra et lavpunkt på \~0,8 (før krisen) op til 2,3, og falder derefter jævnt til omkring 1,0 i 2019.
+
+### 4. Regionale forskelle i niveau
+
+**Hvad ser vi?**\
+Nogle regioner ligger højt, andre lavt:
+
+-   **Hovedstaden** topper højest (\~3,2 i krise).
+
+-   **Nordjylland** ligger lavest (under 1,3 som højeste i krise).
+
+**Forestilling:** Tænk på by versus land: I storbyen (Hovedstaden) er konkurrencen om job større, og flere brancher rammes hårdt i krisetider, mens små samfund i Nordjylland ofte har mere stabile, lokale arbejdspladser.
+
+-   **Eksempel:** I Nordjylland når mænds ledighed i krisen kun op på \~1,3, mod 3,1 i Hovedstaden.
+
+### 5. Volatilitet (støj i dataen)
+
+**Hvad ser vi?**\
+Mænds kurver “hopper” mere fra måned til måned end kvinders. Kvindernes kurver er glattere.
+
+**Forestilling:** Forestil dig to venner, der spiller på aktiemarkedet: Manden tager nogle hurtige køb og salg (“day trading”), mens kvinden køber for at holde længe (“investering”). Førstnævnte giver store udsving, sidstnævnte en mere stabil udvikling.
+
+-   **Eksempel:** Mænd i Region Sjælland har store bump vinter/sommer, mens kvinders ledighed svæver mere jævnt.
+
+## Hvad betyder det for modellerne?
+
+1.  **Altid med sæson**\
+    – Vælg en model, der kan håndtere den årlige op-og-ned-bevægelse, fx SARIMA eller ETS med sæson.
+
+2.  **Individuel tilpasning**\
+    – Fordi hver region og hvert køn har forskellig “højde” og “bumps”, lader vi fable finde den helt rette model for **hver** af de 10 serier. Det sikrer, at modellen fanger lige netop de mønstre og støjniveauer, der gælder for den serie.
+
+3.  **Trendændring efter 2013**\
+    – Vær opmærksom på, at der er en tydelig knæk omkring 2013. Overvej modeller (eller STL-dekomponering), som kan håndtere en let ændret trend dér.
+
 ## Deskriptive statistikker
+
 ## STL-dekomposition
+```{r}
+kvinder_STL <- data |> 
+  filter(kon == "Kvinder") |> 
+  model(STL = STL(log(svalue), robust = TRUE))
+
+kvinder_STL |> components() |> autoplot()
+
+mænd_STL <- data |> 
+  filter(kon == "Mænd") |>
+  model(STL = STL(log(svalue), robust = TRUE))
+
+mænd_STL |> components() |> autoplot()
+
+```
+
 
 # Modelvalg
+
 ## ARIMA og SARIMA
+
 ## ETS (Exponential Smoothing)
+
 ## Simpel benchmarkmodel
+
 ## Kort beskrivelse af modellerne
 
 # Modelvalidering
+
 ## Time series cross-validation
+
 ## Evaluering med RMSE og MAPE
+
 ## Valg af bedste model pr. serie
+
 ## Test for hvid støj
 
 # Forecasting
+
 ## Træning og forecast for 2020
+
 ## Prædiktionsintervaller
+
 ## Visualisering af forecasts
+
 ## Centrale prognoseværdier
 
 # Sammenligning og fortolkning
+
 ## Sammenligning på tværs af serier
+
 ## Tendenser mellem regioner og køn
 
 # Konklusion
@@ -146,11 +321,8 @@ Analysen er baseret på et datasæt med månedlige arbejdsløshedstal i Danmark 
 
 # Kildeliste
 
-
-
 \newpage
 
 # Bilagsoversigt
 
--   Bilag 1: Udleverede Powerpointpræsentationer v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility 
-
+-   Bilag 1: Udleverede Powerpointpræsentationer v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility
