@@ -30,7 +30,6 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 
 ```
 
-```{=tex}
 \maketitle
 \thispagestyle{empty}
 \begin{center}
@@ -50,7 +49,7 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 \textbf{Vejledere:} \\
 Bjarne Taulo Sørensen \\
 \end{center}
-```
+
 \newpage
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
@@ -61,12 +60,11 @@ Bjarne Taulo Sørensen \\
 
 \newpage
 
-```{=tex}
 \pagenumbering{arabic}
 \setcounter{page}{1}
 \tableofcontents
 \newpage
-```
+
 # Introduktion
 
 Formålet med denne analyse er at modellere og forudsige arbejdsløshedstal i Danmark opdelt på region og køn, baseret på månedlige data fra 2007 til 2019. Ved hjælp af klassiske tidsseriemodeller, herunder ARIMA, ETS og en simpel benchmarkmodel, analyseres trends, sæsonvariation og residualer i data.
@@ -128,17 +126,19 @@ data <- read_rds("data/Airidk_long.rds")
 
 # Eksplorativ dataanalyse (EDA)
 
-## Visualisering af trends og sæsonmønstre
+Dette afsnit har til formål at skabe et overblik over datasættets struktur og variation forud for modelvalget. Gennem visualiseringer, deskriptive statistikker og dekomponering undersøges arbejdsløshedens udvikling på tværs af regioner og køn fra 2007 til 2019. Analysen afdækker tendenser, sæsonmønstre og forskelle i niveau og variation. STL-dekomposition anvendes til at isolere trend, sæson og residualer, mens datatransformation vurderes for at sikre modellérbarhed. Resultaterne danner det metodiske grundlag for den efterfølgende modellering.
+
+## Visualisering af udvikling og mønstre
+
+Formålet med dette afsnit er at identificere mønstre og strukturer i datasættet, herunder trends, sæsonvariationer, kønsforskelle og regionale forskelle. Dette gøres gennem en række visualiseringer, der danner grundlag for valg af modeller i de kommende afsnit.
+
+### Udvikling over tid
+
+**Figur 1: Udvikling over tid - Kvinder pr. region**
+
+Figur 1 viser den månedlige arbejdsløshed for kvinder i de fem danske regioner fra 2007 til 2019. Der ses en tydelig sæsonrytme med tilbagevendende stigninger i vintermånederne og fald i sommerperioderne. Niveauet varierer desuden mellem regionerne, hvor Region Hovedstaden generelt ligger højest og Nordjylland lavest. Tendensen peger på strukturelle forskelle samt en overordnet nedadgående trend efter finanskrisen.
 
 ```{r}
-# FORMÅL:
-# - Forstå trends og sæsonmønstre i arbejdsløsheden
-# - Sammenligne regioner og køn
-# - Forberede modellerne ved at tjekke struktur og variation
-
-# VISUALISERING 1: Udvikling i arbejdsløshed over tid
-# Facet per region og køn for at identificere mønstre
-
 # Kun kvinder, alle regioner
 data |> filter((kon == "Kvinder")) |> 
   autoplot(svalue) +
@@ -147,6 +147,10 @@ data |> filter((kon == "Kvinder")) |>
     y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
   ) + theme(legend.title = element_blank())
 ```
+
+**Figur 2: Udvikling over tid - Mænd pr. region**
+
+Figur 2 viser arbejdsløsheden blandt mænd i de fem regioner. Niveauet er generelt højere og udsvingene større end for kvinder, og der ses et tydeligt sæsonmønster.
 
 ```{r}
 # Kun mænd, alle regioner
@@ -157,7 +161,12 @@ data |> filter((kon == "Mænd")) |>
     y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
   ) + theme(legend.title = element_blank())
 
-# Kun mænd, alle regioner
+```
+
+**Figur 3: Log-transformeret udvikling i arbejdsløshed hos mænd pr. region** For at håndtere de markante udsving i mænds arbejdsløshedsniveauer er data log-transformeret i figur 3. Dette jævner forskelle og fremhæver relative ændringer over tid.
+
+```{r}
+# Kun mænd, alle regioner - med log
 data |> filter((kon == "Mænd")) |> 
   autoplot(log(svalue)) +
   labs(
@@ -165,6 +174,10 @@ data |> filter((kon == "Mænd")) |>
     y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
   ) + theme(legend.title = element_blank())
 ```
+
+**Figur 4: Udvikling i arbejdsløshed pr. region og køn**
+
+Plottet viser udviklingen i arbejdsløshed blandt kvinder og mænd fordelt på regioner. Plottet viser, at mænd har generelt højere ledighed og større sæsonudsving end kvinder, særligt i Region Hovedstaden og Syddanmark. Kvindernes kurver er generelt glattere og mindre volatile.
 
 ```{r}
 data |> 
@@ -176,6 +189,8 @@ data |>
   ) + facet_wrap(~ kon) +
   theme(legend.title = element_blank())
 ```
+
+### Sæsonmønstre
 
 ```{r}
 data |> filter((kon == "Mænd")) |>
