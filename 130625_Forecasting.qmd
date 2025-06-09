@@ -30,6 +30,7 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 
 ```
 
+```{=tex}
 \maketitle
 \thispagestyle{empty}
 \begin{center}
@@ -49,7 +50,7 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 \textbf{Vejledere:} \\
 Bjarne Taulo Sørensen \\
 \end{center}
-
+```
 \newpage
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
@@ -60,11 +61,12 @@ Bjarne Taulo Sørensen \\
 
 \newpage
 
+```{=tex}
 \pagenumbering{arabic}
 \setcounter{page}{1}
 \tableofcontents
 \newpage
-
+```
 # Introduktion
 
 Formålet med denne analyse er at modellere og forudsige arbejdsløshedstal i Danmark opdelt på region og køn, baseret på månedlige data fra 2007 til 2019. Ved hjælp af klassiske tidsseriemodeller, herunder ARIMA, ETS og en simpel benchmarkmodel, analyseres trends, sæsonvariation og residualer i data.
@@ -102,6 +104,15 @@ I forbindelse med udarbejdelsen af denne opgave er ChatGPT (GPT-4o) benyttet som
 
 I dette afsnit afklares centrale begreber og forkortelser, der anvendes gennem opgaven, for at sikre en ensartet forståelse.
 
+-   **ARIMA**: AutoRegressive Integrated Moving Average – klassisk tidsseriemodel med trend og autokorrelation\
+-   **ETS**: Exponential Smoothing State Space Model – glatningsbaseret model til tidsserier med trend og sæson\
+-   **SNaive**: Seasonal Naive – benchmarkmodel, hvor forecast er lig med seneste sæsonværdi\
+-   **RMSE**: Root Mean Squared Error – fejlmål hvor store afvigelser vægtes højt\
+-   **MAPE**: Mean Absolute Percentage Error – fejl angivet i procent\
+-   **STL**: Seasonal-Trend decomposition using Loess – metode til dekomponering af tidsserier\
+-   **CV**: Cross-validation – validering af modeller via rullende trænings-/testvinduer\
+-   **Ljung-Box**: Test for autokorrelation i modelresidualer (white noise)
+
 ## Struktur
 
 Opgaven er opbygget i overensstemmelse med en klassisk tilgang til tidsserieanalyse. Først gennemføres en eksplorativ dataanalyse (EDA), hvor datasættet undersøges for trend, sæsonvariation og andre karakteristika gennem visualisering, deskriptiv statistik og STL-dekomposition. Herefter følger modelvalgsfasen, hvor tre modeller – ARIMA, ETS og en simpel benchmarkmodel – estimeres for hver tidsserie. Modellerne evalueres gennem time series cross-validation med fokus på RMSE og MAPE, hvorefter den bedst performende model vælges for hver serie. Afslutningsvis foretages forecast for 2020 med tilhørende prædiktionsintervaller, efterfulgt af en sammenlignende vurdering og konklusion.
@@ -109,6 +120,11 @@ Opgaven er opbygget i overensstemmelse med en klassisk tilgang til tidsserieanal
 # Data og forberedelse
 
 Analysen er baseret på et datasæt med månedlige arbejdsløshedstal i Danmark fra januar 2007 til december 2019. Data er opdelt på køn (mænd og kvinder) og region (de fem danske regioner), hvilket resulterer i ti separate tidsserier. Datasættet er udleveret i forbehandlet format som en tsibble med korrekt angivne indeks- og nøglevariabler, hvilket gør det velegnet til modellering i fable/tidyverts-pakken.
+
+```{r}
+# Indlæs datasættet – gemt som en RDS-fil
+data <- read_rds("data/Airidk_long.rds")
+```
 
 # Eksplorativ dataanalyse (EDA)
 
@@ -165,18 +181,19 @@ data |>
 data |> filter((kon == "Mænd")) |>
   gg_season(svalue)
 ```
+
 ```{r}
 data |> filter((kon == "Kvinder")) |>
   gg_season(svalue)
 ```
+
 ```{r}
 data |> filter(kon == "Kvinder") |> gg_subseries(svalue)
 ```
+
 ```{r}
 data |> filter(kon == "Mænd") |> gg_subseries(svalue)
 ```
-
-
 
 ```{r}
 # Begge køn, alle regioner
@@ -262,7 +279,22 @@ Mænds kurver “hopper” mere fra måned til måned end kvinders. Kvindernes k
 
 ## Deskriptive statistikker
 
+```{r}
+# Opsummering per køn og region
+deskriptiv <- data |> 
+  as_tibble() |>
+  group_by(region, kon) |> 
+  summarise(
+    mean = mean(svalue, na.rm = TRUE),
+    sd   = sd(svalue, na.rm = TRUE),
+    min  = min(svalue, na.rm = TRUE),
+    max  = max(svalue, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
 ## STL-dekomposition
+
 ```{r}
 kvinder_STL <- data |> 
   filter(kon == "Kvinder") |> 
@@ -277,7 +309,6 @@ mænd_STL <- data |>
 mænd_STL |> components() |> autoplot()
 
 ```
-
 
 # Modelvalg
 
