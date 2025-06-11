@@ -142,6 +142,10 @@ I de følgende figurer undersøges udviklingen i arbejdsløsheden over tid. Til 
 **Figur 1: Udvikling i kvinders arbejdsløshed pr. region**
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Figur 1
 
 data |> 
@@ -159,6 +163,10 @@ Figuren viser den månedlige arbejdsløshed blandt kvinder i de fem danske regio
 **Figur 2: Udvikling i mænds arbejdsløshed pr. region**
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Figur 2
 
 data |> 
@@ -181,6 +189,12 @@ Sammenlignet med kvinder ses større udsving og et generelt højere niveau i mæ
 **Figur 3: Udvikling i arbejdsløshed hos pr. region og køn (log-skala)**
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 3
+
 data_long <- data |> 
   mutate(
     original = svalue,
@@ -227,7 +241,11 @@ Med log-transformerede data som fundament undersøges nu sæsonmønstrene i arbe
 **Figur 4: Sæsonmønster for mænd pr. region**
 
 ```{r}
-#Figur 4: Sæsonmønster for mænd pr. region
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 4: Sæsonmønster for mænd pr. region
 
 data |> 
   filter(kon == "Mænd") |> 
@@ -245,7 +263,11 @@ Figur 4 viser sæsonmønstre i mænds arbejdsløshed fordelt på regioner. Hver 
 **Figur 5: Sæsonmønster for kvinder pr. region**
 
 ```{r}
-#Figur 5: Sæsonmønster for kvinder pr. region
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 5
 
 data |> 
   filter(kon == "Kvinder") |> 
@@ -263,7 +285,11 @@ Sammenlignet med mænd er sæsonudsvingene blandt kvinder mindre udtalte, og udv
 **Figur 6: Subserieplot for mænd pr. måned og region**
 
 ```{r}
-#Figur 6
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 6
 
 data |> 
   filter(kon == "Mænd") |> 
@@ -281,7 +307,11 @@ Figur 6 viser udviklingen i mænds arbejdsløshed fordelt på måneder og region
 **Figur 7: Subserieplot for kvinder pr. måned og region**
 
 ```{r}
-#Figur 7
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 7
 data |> 
   filter(kon == "Kvinder") |> 
   gg_subseries(log(svalue)) +
@@ -304,6 +334,10 @@ I dette afsnit rettes fokus mod samspillet mellem køn og region. Der undersøge
 **Figur 8: Arbejdsløshed fordelt på regioner – opdelt efter køn**
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Figur 8
 
 data |> 
@@ -324,7 +358,11 @@ Figur 8 viser den log-transformerede udvikling i arbejdsløsheden blandt mænd o
 **Figur 9: Arbejdsløshed fordelt på køn – opdelt efter region**
 
 ```{r}
-# Figur 9: Arbejdsløshed fordelt på køn – opdelt efter region (log-skala)
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 9
 
 data |> 
   autoplot(log(svalue)) +
@@ -416,7 +454,11 @@ Hvor Figur 8 fokuserede på at sammenligne regioner inden for hvert køn, giver 
 
 For at supplere graferne anvendes deskriptive statistikker som gennemsnit, spredning, minimum og maksimum. De opsummerer niveau og variation i arbejdsløsheden pr. region og køn (Hyndman & Athanasopoulos, 2021). Statistikkerne giver et hurtigt overblik over forskelle mellem grupper og hjælper med at identificere serier med høj volatilitet. Det bidrager til at vurdere, hvor der kan være behov for særlig opmærksomhed i den videre modellering.
 
-```{r tabel 1, warning=FALSE}
+```{r tabel 1}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Beregning
 deskriptiv <- data |> 
   as_tibble() |>
@@ -447,7 +489,15 @@ Da særligt mændenes serier udviser høje niveauer og større variation, er all
 
 STL anvendes her på de log-transformerede serier for henholdsvis kvinder og mænd i hver region. Resultaterne præsenteres i figur 10 og 11.
 
+**Figur 10: STL-dekomposition for kvinder – log-transformeret arbejdsløshed pr. region**
+
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 10
+
 kvinder_STL <- data |> 
   filter(kon == "Kvinder") |> 
   model(STL = STL(log(svalue), robust = TRUE))
@@ -463,9 +513,17 @@ kvinder_STL |>
   )
 ```
 
-**Figur 10: STL-dekomposition for kvinder – log-transformeret arbejdsløshed pr. region** Figur 10 viser STL-dekompositionen for kvinder i de fem danske regioner. Der ses tydelige sæsonmønstre med tilbagevendende lavpunkter i sommermånederne og højere ledighed i vinterhalvåret. Trends varierer mellem regionerne: Region Hovedstaden udviser generelt højere ledighed, mens Nordjylland og Sjælland ligger lavere. Residualerne ligger stabilt omkring nul, hvilket indikerer, at modellen formår at fange de dominerende strukturer i data.
+Figur 10 viser STL-dekompositionen for kvinder i de fem danske regioner. Der ses tydelige sæsonmønstre med tilbagevendende lavpunkter i sommermånederne og højere ledighed i vinterhalvåret. Trends varierer mellem regionerne: Region Hovedstaden udviser generelt højere ledighed, mens Nordjylland og Sjælland ligger lavere. Residualerne ligger stabilt omkring nul, hvilket indikerer, at modellen formår at fange de dominerende strukturer i data.
+
+**Figur 11: STL-dekomposition for mænd – log-transformeret arbejdsløshed pr. region**
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Figur 11
+
 mænd_STL <- data |> 
   filter(kon == "Mænd") |>
   model(STL = STL(log(svalue), robust = TRUE))
@@ -481,7 +539,7 @@ mænd_STL |>
   )
 ```
 
-**Figur 11: STL-dekomposition for mænd – log-transformeret arbejdsløshed pr. region** Figur 11 viser tilsvarende dekomposition for mænd. Her ses en tilsvarende stærk sæsonkomponent, men med mere markante udsving og højere ledighedsniveauer – især efter finanskrisen. Trends følger samme overordnede forløb som for kvinder, men afvigelserne er større. Dette bekræfter tidligere observationer om højere volatilitet i mænds ledighed. Residualkomponenten er mere varierende, hvilket kan indikere, at nogle udsving ikke fanges fuldt ud af modellen.
+Figur 11 viser tilsvarende dekomposition for mænd. Her ses en tilsvarende stærk sæsonkomponent, men med mere markante udsving og højere ledighedsniveauer – især efter finanskrisen. Trends følger samme overordnede forløb som for kvinder, men afvigelserne er større. Dette bekræfter tidligere observationer om højere volatilitet i mænds ledighed. Residualkomponenten er mere varierende, hvilket kan indikere, at nogle udsving ikke fanges fuldt ud af modellen.
 
 Disse observationer fra STL-dekompositionen bekræfter, at både trend og sæsonmønstre varierer betydeligt på tværs af serierne. Det understreger behovet for modeller, der kan tilpasses hver series struktur, hvilket vil blive præsenteret i det følgende afsnit.
 
@@ -504,7 +562,11 @@ SNaive er en enkel benchmarkmodel, der baserer hvert forecast på den tilsvarend
 
 Ved hjælp af fable-pakken estimeres de tre modeller automatisk for hver af de ti tidsserier på baggrund af data fra 2007 til 2019. Herefter genereres forecasts for 2020 med tilhørende prædiktionsintervaller. Prognoserne visualiseres, så man kan sammenligne modellernes adfærd på tværs af regioner og køn.
 
-```{r tabel 2, warning=FALSE}
+```{r tabel 2}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Estimér modeller for hele perioden 2007–2019
 models <- data |> 
   model(
@@ -537,22 +599,24 @@ Modelvalget er gennemført for hver enkelt tidsserie ved automatisk estimering a
 SNaive-modellen er anvendt som benchmark og danner referencepunkt for den efterfølgende evaluering. Den egentlige vurdering af modellernes forecast-præcision foretages først i næste afsnit, hvor modellerne sammenlignes på baggrund af tidsserie-krydsvalidering og metrikker som RMSE og MAPE.
 
 # Modelvalidering
-For at vurdere modellernes forecast-præcision anvendes time series cross-validation. Her evalueres ARIMA-, ETS- og SNaive-modellerne for hver tidsserie med fokus på, hvordan de præsterer på ukendte data.
 
-## Træning og test af modeller
-Datasættet opdeles i en træningsperiode (2007–2018) og en testperiode (2019). Modellerne estimeres på træningsdata, og deres præcision vurderes ved at sammenligne forudsigelser for 2019 med de faktiske observationer.
+For at opnå en robust vurdering kombineres testsplit og time series cross-validation. Testsplittet simulerer en realistisk forecast-situation, mens cross-validation måler præcisionen over flere tidspunkter og reducerer risikoen for tilfældige variationer.
+
+## Trænings- og testsplit
+
+Datasættet opdeles i en træningsperiode (2007–2018) og en testperiode (2019). Modellerne estimeres på træningsdata og genererer forecasts for teståret. Præcisionen vurderes ved sammenligning med de faktiske observationer fra 2019.
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Opdel datasættet i træning og test
 
 train_data <- data |> filter_index(. ~ "2018 Dec")
 test_data  <- data |> filter_index("2019 Jan" ~ "2019 Dec")
-```
 
-
-## Modellering og forecast
-Tre modeller estimeres for hver tidsserie: ARIMA, ETS og SNaive. For hver model genereres et 12-måneders forecast, som sammenlignes med testdata. Præcisionen vurderes med RMSE og MAPE for hver model og tidsserie.
-```{r}
-# Estimér modeller på træningsdata
+# Estimér modeller for træningsdata
 model_train <- train_data |> 
   model(
     ARIMA  = ARIMA(svalue),
@@ -567,35 +631,203 @@ forecast_2019 <- model_train |> forecast(h = "12 months")
 
 ## Evalueringsmetrikker: RMSE og MAPE
 
-Forecasts sammenholdes med de faktiske observationer fra 2019. Til vurdering anvendes to centrale metrikker:
+For at vurdere, hvor godt modellerne forudsiger arbejdsløsheden, sammenlignes deres forecasts for 2019 med de faktiske observationer. Der anvendes to metrikker:
 
-- **RMSE (Root Mean Squared Error):** Følsom over for store afvigelser.
-- **MAPE (Mean Absolute Percentage Error):** Procentuel præcision, uafhængig af skala.
+-   RMSE måler den gennemsnitlige afvigelse og lægger vægt på store fejl.
+
+-   MAPE viser den gennemsnitlige procentvise fejl og muliggør sammenligning på tværs af serier med forskellig måleenhed.
+
+Tabellen nedenfor viser RMSE og MAPE for alle modeller og serier. Værdierne bruges som grundlag for at vurdere, hvilke modeller der præsterer bedst.
 
 ```{r}
-# Sammenlign forecast med testdata
+#| echo: false
+#| warning: false
+#| message: false
+
+# Udregn RMSE og MAPE pr. model og serie
 forecast_2019 |> 
   accuracy(test_data) |> 
   select(kon, region, .model, RMSE, MAPE) |> 
   arrange(region, kon, RMSE)
+
 ```
 
 ## Valg af bedste model pr. serie
 
+For hver kombination af region og køn vælges den model, der opnår lavest RMSE i testperioden. Dette valg sikrer, at den videre analyse baseres på modeller med høj prædiktiv nøjagtighed.
+
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Vælg modellen med lavest RMSE pr. tidsserie
 forecast_2019 |> 
   accuracy(test_data) |> 
   group_by(kon, region) |> 
   slice_min(RMSE, n = 1) |> 
-  ungroup()
+  ungroup() |> 
+  select(kon, region, .model, RMSE, MAPE)
 ```
 
+Som det fremgår af tabellen, vælges ARIMA-modellen for samtlige serier for kvinder. For mænd er billedet mere varieret: ARIMA vinder i Nordjylland og Sjælland, mens SNaive udgør bedste model i de øvrige regioner. Det viser, at præcisionen afhænger både af den regionale kontekst og datamønstre knyttet til køn.
+
+## Visualisering af forecast vs. faktiske værdier
+
+Forecast og faktisk udvikling kan visualiseres for alle 10 tidsserier:
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+labels <- forecast_2019 |> 
+  accuracy(test_data) |> 
+  group_by(kon, region) |> 
+  slice_min(RMSE, n = 1) |> 
+  ungroup() |> 
+  mutate(label = paste0("Bedste: ", .model))
+
+forecast_2019 |> 
+  autoplot(test_data, level = NULL) +
+  facet_grid(region ~ kon, scales = "free_y") +
+  geom_text(data = labels, 
+            aes(x = as.Date("2019-01-01"), y = Inf, label = label),
+            inherit.aes = FALSE,
+            vjust = 1.5, hjust = 0,
+            size = 3.5, fontface = "italic") +
+  labs(
+    title = "Forecast-præcision i testperioden (2019)",
+    subtitle = "Sammenligning af modeller – med vinder pr. serie",
+    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
+  ) +
+  coord_cartesian(xlim = c(as.Date("2019-01-01"), as.Date("2019-12-31"))) +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.title = element_blank())
 
 
-## Valg af bedste model pr. serie
+```
 
-## Test for hvid støj
+Den identificerede model med lavest forecastfejl anvendes i den videre analyse, da den vurderes mest robust til at forudsige fremtidige observationer.
+
+## Time series cross-validation
+
+For at supplere den traditionelle opdeling i trænings- og testperiode anvendes time series cross-validation med rullende vindue. Dette gør det muligt at evaluere forecast-præcisionen på tværs af flere tidspunkter og dermed sikre mere robust modelvurdering.
+
+Datasættet strækkes med et startvindue på 60 måneder og forecast-horisont på 1 måned. For hver udvidet vindue estimeres modellerne (ARIMA, ETS og SNaive), og forecast-fejl beregnes.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Indlæs eksisterende cv_accuracy, hvis filen findes
+if (file.exists("data/cv_accuracy.rds")) {
+  cv_accuracy <- readRDS("data/cv_accuracy.rds")
+} else {
+  # Kør beregning og gem til fil, hvis den ikke allerede findes
+  data_cv <- data |>
+    stretch_tsibble(.init = 60, .step = 1)
+
+  cv_models <- data_cv |> 
+    model(
+      ARIMA  = ARIMA(svalue),
+      ETS    = ETS(svalue),
+      SNaive = SNAIVE(svalue)
+    )
+
+  cv_accuracy <- cv_models |> 
+    forecast(h = 1) |> 
+    accuracy(data) |> 
+    select(kon, region, .model, RMSE, MAPE)
+
+  #write_rds(cv_accuracy, "data/cv_accuracy.rds")
+}
+```
+
+**Gennemsnitlig performance på tværs af alle tidsserier:**
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+cv_accuracy |> 
+  group_by(.model) |> 
+  summarise(across(c(RMSE, MAPE), mean, na.rm = TRUE)) |> 
+  arrange(RMSE)
+
+```
+
+ARIMA opnår de laveste gennemsnitlige RMSE- og MAPE-værdier og præsterer bedst på tværs af serier.
+
+**Den bedste model pr. serie (lavest RMSE):**
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+cv_accuracy |> 
+  group_by(kon, region) |> 
+  slice_min(RMSE, n = 1) |> 
+  ungroup()
+
+```
+
+Resultatet viser, at ARIMA vælges for størstedelen af serierne, hvilket bekræfter den højere præcision i forhold til benchmark og ETS-modeller.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+
+# Find den bedste model pr. køn og region baseret på laveste RMSE
+vinder_modeller <- cv_accuracy |> 
+  group_by(kon, region) |> 
+  slice_min(order_by = RMSE, n = 1, with_ties = FALSE) |> 
+  ungroup()
+
+xx <- cv_accuracy |> arrange(kon, region, .model, RMSE) 
+
+```
+
+## Residualanalyse og hvid støj
+
+For at undersøge, om den valgte model fanger strukturen i data tilstrækkeligt, kan residualerne fra forecastmodellen inspiceres. Figuren nedenfor ses et eksempel på residualanalyse for ARIMA-modellen estimeret på kvinder i Region Syddanmark:
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+model_train |> 
+  filter(kon == "Kvinder", region == "Region Syddanmark") |> 
+  select(ARIMA) |> 
+  gg_tsresiduals()
+```
+
+Figuren indeholder tre elementer: et residualplot over tid, et ACF-plot (autokorrelationsfunktion) og et histogram. Residualerne synes at være tilfældigt fordelt omkring nul, uden synlige systematiske mønstre. ACF-plottet viser ingen signifikant autokorrelation, og histogrammet er centreret og symmetrisk. Samlet indikerer dette, at modellen er veltilpasset og ikke efterlader systematisk information i fejlleddene. Dette mønster genfindes i de øvrige ARIMA-modeller og understøttes af de statistiske test nedenfor.
+
+Som supplement til den visuelle inspektion anvendes Ljung-Box-testen til at undersøge, om residualerne fra modellerne er ukorrellerede – altså om de udgør hvid støj.
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+model_train |> 
+  select(ARIMA, ETS, SNaive) |> 
+  augment() |> 
+  features(.resid, ljung_box, lag = 24, dof = 0)
+```
+
+For ARIMA-modellerne er p-værdierne generelt ikke-signifikante (p \> 0.05), hvilket indikerer ukorrellerede residualer og dermed en god modeltilpasning. ETS- og SNaive-modellerne har i flere tilfælde signifikante p-værdier, hvilket tyder på resterende struktur i fejlene. Det understøtter, at ARIMA ofte er den mest velegnede modeltype i dette datasæt.
+
+På tværs af test- og CV-resultater opnår ARIMA-modellerne den højeste præcision og opfylder modelantagelserne. De vælges derfor som grundlag for den videre forecastanalyse.
+
+På baggrund af denne modelvalidering foretages nu forecasts for året 2020, baseret på den bedst præsterende model for hver serie.
 
 # Forecasting
 
