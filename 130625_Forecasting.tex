@@ -266,26 +266,20 @@ nationale økonomi og indgår som en væsentlig faktor i politiske og
 forbedrede statistiske værktøjer er det blevet muligt at analysere og
 forudsige sådanne udviklingstræk med større præcision.
 
-Denne opgave har til formål at modellere og forudsige udviklingen i
-arbejdsløsheden i Danmark, fordelt på køn og region, med afsæt i
-månedlige data for perioden januar 2007 til december 2019. Datasættet
-består af ti tidsserier -- én for hver kombination af fem regioner og to
-køn -- hvilket muliggør en detaljeret og differentieret analyse af både
-strukturelle og sæsonbetingede mønstre i ledigheden.
+Denne opgave undersøger udviklingen i arbejdsløsheden i Danmark i
+perioden 2007 til 2019 -- opdelt på køn og region. Datagrundlaget består
+af ti tidsserier, én for hver kombination af fem regioner og to køn. Det
+giver mulighed for at analysere både regionale forskelle og
+kønsspecifikke mønstre i arbejdsløsheden.
 
-Metodisk anvender analysen klassiske teknikker til tidsserieanalyse med
-særligt fokus på modellerne ARIMA, ETS og en simpel benchmarkmodel
-(Seasonal Naive). For hver serie estimeres de tre modeltyper, og deres
-performance evalueres ved hjælp af forecast-metrikker som RMSE og MAPE.
-Derudover inddrages elementer som STL-dekomposition, transformation af
-data (log og Box-Cox), residualanalyse og test for hvid støj
-(Ljung-Box).
-
-Formålet er ikke blot at fremskrive arbejdsløsheden for året 2020, men
-også at vurdere styrker og begrænsninger ved klassiske modeller til
-tidsserieanalyse. Med dette udgangspunkt opstår spørgsmålet, hvordan
-sådanne modeller bedst kan anvendes til at analysere og forudsige
-arbejdsløsheden i Danmark, fordelt på region og køn.
+Med udgangspunkt i klassiske tidsseriemodeller, ARIMA, ETS og en simpel
+benchmarkmodel (Seasonal Naive), undersøges, hvordan arbejdsløsheden har
+udviklet sig, og hvordan den kan fremskrives. Undervejs vurderes
+modellernes egnethed med fokus på præcision og residualstruktur, og der
+anvendes teknikker som STL-dekomposition og transformation af data.
+Målet er ikke blot at forudsige udviklingen i 2020, men også at vurdere,
+hvor godt klassiske modeller formår at håndtere forskellene mellem
+regioner og køn.
 
 \section{Problemformulering}\label{problemformulering}
 
@@ -307,92 +301,74 @@ For at besvare dette spørgsmål undersøges følgende delspørgsmål:
   prognoseegenskaber?
 \item
   Hvilke modeller er bedst egnede til at fremskrive
-  arbejdsløshedstallene for 2020, og hvordan varierer resultater og
-  usikkerhed på tværs af serierne?
+  arbejdsløshedstallene for 2020, og hvordan varierer usikkerheden på
+  tværs af serier?
 \end{enumerate}
 
 \subsection{Afgrænsning}\label{afgruxe6nsning}
 
-Analysen er udelukkende baseret på de udleverede data og har fokus på
-metodisk klarhed, reproducerbarhed og faglig konsistens. Eksterne
-forklarende faktorer som COVID-19, konjunkturændringer og politiske
-tiltag inddrages ikke.
-
-Formålet er ikke at give strategiske eller forretningsmæssige
-anbefalinger, men at demonstrere korrekt og velbegrundet anvendelse af
-klassiske forecasting-metoder. Der lægges vægt på modellering,
-evaluering og sammenligning af tidsseriemodeller i en struktureret
-analytisk ramme.
+Analysen bygger udelukkende på de udleverede arbejdsløshedsdata for
+perioden januar 2007 til december 2019 og inddrager ikke eksterne
+forklarende faktorer som COVID-19, konjunkturudsving eller politiske
+tiltag. Formålet er ikke at forklare årsager til ledighed, men at
+undersøge, hvordan klassiske forecasting-modeller kan anvendes metodisk
+og reproducerbart. Fokus ligger på statistisk modellering og
+sammenligning af modelpræcision -- ikke på strategiske eller politiske
+anbefalinger.
 
 \subsubsection{Anvendelse af
 AI-værktøj}\label{anvendelse-af-ai-vuxe6rktuxf8j}
 
-I udarbejdelsen af denne opgave er ChatGPT (GPT-4o) anvendt som et
-støtteværktøj. Værktøjet har primært været anvendt til idéudvikling,
-sproglig sparring, forbedring af formuleringers klarhed, grammatisk
-gennemgang samt støtte ved udformning af enkelte kodestumper.
-Anvendelsen har udelukkende omfattet sproglige, strukturelle og tekniske
-elementer. Alt analytisk, fortolkende og konkluderende indhold er
-selvstændigt udarbejdet af gruppens medlemmer.
+ChatGPT (GPT-4o) er anvendt som støtteværktøj i forbindelse med
+idéudvikling, sproglig formulering og udformning af enkelte kodestumper.
+Værktøjet er kun brugt til tekniske og sproglige formål -- al analyse,
+fortolkning og konklusion er udarbejdet selvstændigt af gruppens
+medlemmer.
 
 \subsection{Definitioner/forkortelser}\label{definitionerforkortelser}
 
-I dette afsnit afklares centrale begreber og forkortelser, der anvendes
-gennem opgaven, for at sikre en ensartet forståelse.
+Nedenfor er en oversigt over centrale begreber og forkortelser, som
+anvendes i opgaven:
 
 \begin{itemize}
 \tightlist
 \item
-  \textbf{ARIMA}: AutoRegressive Integrated Moving Average -- klassisk
-  tidsseriemodel med trend og autokorrelation\\
+  \textbf{ARIMA}: AutoRegressive Integrated Moving Average
 \item
-  \textbf{ETS}: Exponential Smoothing State Space Model --
-  glatningsbaseret model til tidsserier med trend og sæson\\
+  \textbf{ETS}: Exponential Smoothing State Space Model
 \item
-  \textbf{SNAÏVE}: Seasonal Naive -- benchmarkmodel, hvor forecast er
-  lig med seneste sæsonværdi\\
+  \textbf{SNAÏVE}: Seasonal Naive
 \item
-  \textbf{RMSE}: Root Mean Squared Error -- fejlmål hvor store
-  afvigelser vægtes højt\\
+  \textbf{RMSE}: Root Mean Squared Error
 \item
-  \textbf{MAPE}: Mean Absolute Percentage Error -- fejl angivet i
-  procent\\
+  \textbf{MAPE}: Mean Absolute Percentage Error
 \item
-  \textbf{STL}: Seasonal-Trend decomposition using Loess -- metode til
-  dekomponering af tidsserier\\
+  \textbf{STL}: Seasonal-Trend decomposition using Loess
 \item
-  \textbf{CV}: Cross-validation -- validering af modeller via rullende
-  trænings-/testvinduer\\
-\item
-  \textbf{Ljung-Box}: Test for autokorrelation i modelresidualer (white
-  noise)
+  \textbf{CV}: Cross-validation
 \end{itemize}
 
 \subsection{Struktur}\label{struktur}
 
-Opgaven er struktureret i overensstemmelse med en klassisk tilgang til
-analyse af tidsserier og følger fire hovedfaser.
-
-Først gennemføres en eksplorativ dataanalyse (EDA), hvor serierne
-visualiseres og undersøges for tendenser og sæsonmønstre. Dette sker ved
-hjælp af grafer, deskriptive statistikker og STL-dekomposition. Data
-transformeres ved behov. Dernæst estimeres tre modeltyper for hver
-serie: ARIMA, ETS og Seasonal Naive. Disse modeller valideres gennem
-krydsvalidering og residualanalyse. På baggrund af modelperformance
-foretages fremskrivninger af arbejdsløsheden for 2020 med tilhørende
-prædiktionsintervaller. Afslutningsvis sammenlignes modellerne og
-arbejdsløshedsniveauerne på tværs af regioner og køn, og der konkluderes
-på analysens hovedspørgsmål.
+Opgaven er opbygget i fem hovedfaser, som følger en klassisk tilgang til
+analyse af tidsserier. Først gennemføres en eksplorativ dataanalyse
+(EDA), hvor dataserierne visualiseres og undersøges for tendenser,
+sæsonmønstre og variation. Dette sker med grafer, deskriptive
+statistikker og STL-dekomposition, og data transformeres efter behov.
+Derefter estimeres tre modeltyper -- ARIMA, ETS og Seasonal Naive -- for
+hver serie. Modellerne valideres med krydsvalidering, residualanalyse og
+forecast-metrikker, før de anvendes til at fremskrive arbejdsløsheden
+for 2020 med tilhørende usikkerhed. Til sidst sammenlignes modeller og
+ledighedsniveauer på tværs af regioner og køn, og der konkluderes på den
+overordnede problemstilling.
 
 \section{Data og forberedelse}\label{data-og-forberedelse}
 
-Analysen er baseret på et datasæt med månedlige arbejdsløshedstal i
-Danmark fra januar 2007 til december 2019. Data er opdelt på køn (mænd
-og kvinder) og region (de fem danske regioner), hvilket resulterer i ti
-separate tidsserier.
-
-Datasættet er udleveret i forbehandlet format som en tsibble med korrekt
-angivne indeks- og nøglevariabler.
+Analysen bygger på månedlige arbejdsløshedstal fra Danmark i perioden
+januar 2007 til december 2019. Data er opdelt efter køn og region,
+hvilket giver ti separate tidsserier. Datasættet er udleveret i et
+forbehandlet tsibble-format med tydeligt definerede indeks- og
+nøglevariabler, og nedenfor indlæses datasættet:
 
 \begin{verbatim}
 # A tsibble: 6 x 4 [1M]
@@ -410,24 +386,23 @@ angivne indeks- og nøglevariabler.
 \section{Eksplorativ dataanalyse
 (EDA)}\label{eksplorativ-dataanalyse-eda}
 
-Dette afsnit har til formål at skabe et overblik over datasættets
-struktur og variation forud for modelvalget. Gennem visualiseringer,
-deskriptive statistikker og dekomponering undersøges arbejdsløshedens
-udvikling på tværs af regioner og køn fra 2007 til 2019. Analysen
-afdækker tendenser, sæsonmønstre og forskelle i niveau og variation.
-STL-dekomposition anvendes til at isolere trend, sæson og residualer,
-mens datatransformation vurderes for at sikre modellérbarhed.
-Resultaterne danner det metodiske grundlag for den efterfølgende
-modellering.
+Formålet med dette afsnit er at skabe et overblik over datasættets
+struktur forud for modelleringen. Ved hjælp af visualiseringer,
+deskriptive statistikker og STL-dekomposition undersøges
+arbejdsløshedens udvikling på tværs af regioner og køn i perioden
+2007--2019. Analysen afdækker overordnede tendenser, sæsonmønstre og
+forskelle i niveau og variation. For at sikre god modellering vurderes
+behovet for datatransformation, og tidsserierne dekomponeres i trend,
+sæson og residualer. Resultaterne danner det metodiske fundament for det
+videre modelarbejde.
 
 \subsection{Visualisering af udvikling og
 mønstre}\label{visualisering-af-udvikling-og-muxf8nstre}
 
-Formålet med dette afsnit er at identificere centrale mønstre og
-karakteristika i arbejdsløshedsdataene -- herunder trends,
-sæsonvariationer, regionale forskelle og forskelle mellem køn.
-Visualiseringerne danner grundlag for valg af passende modeller til hver
-tidsserie.
+I dette afsnit undersøges, hvordan arbejdsløsheden har udviklet sig over
+tid -- med fokus på tendenser, sæsonvariationer og forskelle mellem
+regioner og køn. Formålet er at identificere mønstre, som kan guide valg
+af modeller i den videre analyse.
 
 \subsubsection{Udvikling over tid}\label{udvikling-over-tid}
 
