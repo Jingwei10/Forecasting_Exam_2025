@@ -52,7 +52,7 @@ Bjarne Taulo Sørensen \\
 
 \newpage
 
-\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+\tableofcontents
 
 # Tabel over figurer {.unnumbered}
 
@@ -69,11 +69,9 @@ Bjarne Taulo Sørensen \\
 
 Arbejdsløshedstal er en central indikator for et lands økonomiske tilstand og udvikling. De påvirker både den enkelte borger og den nationale økonomi og indgår som en væsentlig faktor i politiske og økonomiske beslutningsprocesser. I takt med øget datatilgængelighed og forbedrede statistiske værktøjer er det blevet muligt at analysere og forudsige sådanne udviklingstræk med større præcision.
 
-Denne opgave har til formål at modellere og forudsige udviklingen i arbejdsløsheden i Danmark, fordelt på køn og region, med afsæt i månedlige data for perioden januar 2007 til december 2019. Datasættet består af ti tidsserier – én for hver kombination af fem regioner og to køn – hvilket muliggør en detaljeret og differentieret analyse af både strukturelle og sæsonbetingede mønstre i ledigheden.
+Denne opgave undersøger udviklingen i arbejdsløsheden i Danmark i perioden 2007 til 2019 – opdelt på køn og region. Datagrundlaget består af ti tidsserier, én for hver kombination af fem regioner og to køn. Det giver mulighed for at analysere både regionale forskelle og kønsspecifikke mønstre i arbejdsløsheden.
 
-Metodisk anvender analysen klassiske teknikker til tidsserieanalyse med særligt fokus på modellerne ARIMA, ETS og en simpel benchmarkmodel (Seasonal Naive). For hver serie estimeres de tre modeltyper, og deres performance evalueres ved hjælp af forecast-metrikker som RMSE og MAPE. Derudover inddrages elementer som STL-dekomposition, transformation af data (log og Box-Cox), residualanalyse og test for hvid støj (Ljung-Box).
-
-Formålet er ikke blot at fremskrive arbejdsløsheden for året 2020, men også at vurdere styrker og begrænsninger ved klassiske modeller til tidsserieanalyse. Med dette udgangspunkt opstår spørgsmålet, hvordan sådanne modeller bedst kan anvendes til at analysere og forudsige arbejdsløsheden i Danmark, fordelt på region og køn.
+Med udgangspunkt i klassiske tidsseriemodeller, ARIMA, ETS og en simpel benchmarkmodel (Seasonal Naive), undersøges, hvordan arbejdsløsheden har udviklet sig, og hvordan den kan fremskrives. Undervejs vurderes modellernes egnethed med fokus på præcision og residualstruktur, og der anvendes teknikker som STL-dekomposition og transformation af data. Målet er ikke blot at forudsige udviklingen i 2020, men også at vurdere, hvor godt klassiske modeller formår at håndtere forskellene mellem regioner og køn.
 
 # Problemformulering
 
@@ -85,55 +83,57 @@ For at besvare dette spørgsmål undersøges følgende delspørgsmål:
 
 2.  Hvordan performer modellerne ARIMA, ETS og Seasonal Naive i forhold til hinanden, når det gælder præcision, residualstruktur og prognoseegenskaber?
 
-3.  Hvilke modeller er bedst egnede til at fremskrive arbejdsløshedstallene for 2020, og hvordan varierer resultater og usikkerhed på tværs af serierne?
+3.  Hvilke modeller er bedst egnede til at fremskrive arbejdsløshedstallene for 2020, og hvordan varierer usikkerheden på tværs af serier?
 
 ## Afgrænsning
 
-Analysen er udelukkende baseret på de udleverede data og har fokus på metodisk klarhed, reproducerbarhed og faglig konsistens. Eksterne forklarende faktorer som COVID-19, konjunkturændringer og politiske tiltag inddrages ikke.
-
-Formålet er ikke at give strategiske eller forretningsmæssige anbefalinger, men at demonstrere korrekt og velbegrundet anvendelse af klassiske forecasting-metoder. Der lægges vægt på modellering, evaluering og sammenligning af tidsseriemodeller i en struktureret analytisk ramme.
+Analysen bygger udelukkende på de udleverede arbejdsløshedsdata for perioden januar 2007 til december 2019 og inddrager ikke eksterne forklarende faktorer som COVID-19, konjunkturudsving eller politiske tiltag. Formålet er ikke at forklare årsager til ledighed, men at undersøge, hvordan klassiske forecasting-modeller kan anvendes metodisk og reproducerbart. Fokus ligger på statistisk modellering og sammenligning af modelpræcision – ikke på strategiske eller politiske anbefalinger.
 
 ### Anvendelse af AI-værktøj
 
-I udarbejdelsen af denne opgave er ChatGPT (GPT-4o) anvendt som et støtteværktøj. Værktøjet har primært været anvendt til idéudvikling, sproglig sparring, forbedring af formuleringers klarhed, grammatisk gennemgang samt støtte ved udformning af enkelte kodestumper. Anvendelsen har udelukkende omfattet sproglige, strukturelle og tekniske elementer. Alt analytisk, fortolkende og konkluderende indhold er selvstændigt udarbejdet af gruppens medlemmer.
+ChatGPT (GPT-4o) er anvendt som støtteværktøj i forbindelse med idéudvikling, sproglig formulering og udformning af enkelte kodestumper. Værktøjet er kun brugt til tekniske og sproglige formål – al analyse, fortolkning og konklusion er udarbejdet selvstændigt af gruppens medlemmer.
 
 ## Definitioner/forkortelser
 
-I dette afsnit afklares centrale begreber og forkortelser, der anvendes gennem opgaven, for at sikre en ensartet forståelse.
+Nedenfor er en oversigt over centrale begreber og forkortelser, som anvendes i opgaven:
 
--   **ARIMA**: AutoRegressive Integrated Moving Average – klassisk tidsseriemodel med trend og autokorrelation\
--   **ETS**: Exponential Smoothing State Space Model – glatningsbaseret model til tidsserier med trend og sæson\
--   **SNAÏVE**: Seasonal Naive – benchmarkmodel, hvor forecast er lig med seneste sæsonværdi\
--   **RMSE**: Root Mean Squared Error – fejlmål hvor store afvigelser vægtes højt\
--   **MAPE**: Mean Absolute Percentage Error – fejl angivet i procent\
--   **STL**: Seasonal-Trend decomposition using Loess – metode til dekomponering af tidsserier\
--   **CV**: Cross-validation – validering af modeller via rullende trænings-/testvinduer\
--   **Ljung-Box**: Test for autokorrelation i modelresidualer (white noise)
+-   **ARIMA**: AutoRegressive Integrated Moving Average
+-   **ETS**: Exponential Smoothing State Space Model
+-   **SNAÏVE**: Seasonal Naive
+-   **RMSE**: Root Mean Squared Error
+-   **MAPE**: Mean Absolute Percentage Error 
+-   **STL**: Seasonal-Trend decomposition using Loess 
+-   **CV**: Cross-validation
 
 ## Struktur
 
-Opgaven er struktureret i overensstemmelse med en klassisk tilgang til analyse af tidsserier og følger fire hovedfaser.
-
-Først gennemføres en eksplorativ dataanalyse (EDA), hvor serierne visualiseres og undersøges for tendenser og sæsonmønstre. Dette sker ved hjælp af grafer, deskriptive statistikker og STL-dekomposition. Data transformeres ved behov. Dernæst estimeres tre modeltyper for hver serie: ARIMA, ETS og Seasonal Naive. Disse modeller valideres gennem krydsvalidering og residualanalyse. På baggrund af modelperformance foretages fremskrivninger af arbejdsløsheden for 2020 med tilhørende prædiktionsintervaller. Afslutningsvis sammenlignes modellerne og arbejdsløshedsniveauerne på tværs af regioner og køn, og der konkluderes på analysens hovedspørgsmål.
+Opgaven er opbygget i fem hovedfaser, som følger en klassisk tilgang til analyse af tidsserier.
+Først gennemføres en eksplorativ dataanalyse (EDA), hvor dataserierne visualiseres og undersøges for tendenser, sæsonmønstre og variation. Dette sker med grafer, deskriptive statistikker og STL-dekomposition, og data transformeres efter behov. Derefter estimeres tre modeltyper – ARIMA, ETS og Seasonal Naive – for hver serie. Modellerne valideres med krydsvalidering, residualanalyse og forecast-metrikker, før de anvendes til at fremskrive arbejdsløsheden for 2020 med tilhørende usikkerhed. Til sidst sammenlignes modeller og ledighedsniveauer på tværs af regioner og køn, og der konkluderes på den overordnede problemstilling.
 
 # Data og forberedelse
 
-Analysen er baseret på et datasæt med månedlige arbejdsløshedstal i Danmark fra januar 2007 til december 2019. Data er opdelt på køn (mænd og kvinder) og region (de fem danske regioner), hvilket resulterer i ti separate tidsserier.
-
-Datasættet er udleveret i forbehandlet format som en tsibble med korrekt angivne indeks- og nøglevariabler.
+Analysen bygger på månedlige arbejdsløshedstal fra Danmark i perioden januar 2007 til december 2019. Data er opdelt efter køn og region, hvilket giver ti separate tidsserier.
+Datasættet er udleveret i et forbehandlet tsibble-format med tydeligt definerede indeks- og nøglevariabler, og nedenfor indlæses datasættet:
 
 ```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
 # Indlæs datasættet
 data <- read_rds("data/Airidk_long.rds")
+
+head(data)
+
 ```
 
 # Eksplorativ dataanalyse (EDA)
 
-Dette afsnit har til formål at skabe et overblik over datasættets struktur og variation forud for modelvalget. Gennem visualiseringer, deskriptive statistikker og dekomponering undersøges arbejdsløshedens udvikling på tværs af regioner og køn fra 2007 til 2019. Analysen afdækker tendenser, sæsonmønstre og forskelle i niveau og variation. STL-dekomposition anvendes til at isolere trend, sæson og residualer, mens datatransformation vurderes for at sikre modellérbarhed. Resultaterne danner det metodiske grundlag for den efterfølgende modellering.
+Formålet med dette afsnit er at skabe et overblik over datasættets struktur forud for modelleringen. Ved hjælp af visualiseringer, deskriptive statistikker og STL-dekomposition undersøges arbejdsløshedens udvikling på tværs af regioner og køn i perioden 2007–2019. Analysen afdækker overordnede tendenser, sæsonmønstre og forskelle i niveau og variation. For at sikre god modellering vurderes behovet for datatransformation, og tidsserierne dekomponeres i trend, sæson og residualer. Resultaterne danner det metodiske fundament for det videre modelarbejde.
 
 ## Visualisering af udvikling og mønstre
 
-Formålet med dette afsnit er at identificere centrale mønstre og karakteristika i arbejdsløshedsdataene – herunder trends, sæsonvariationer, regionale forskelle og forskelle mellem køn. Visualiseringerne danner grundlag for valg af passende modeller til hver tidsserie.
+I dette afsnit undersøges, hvordan arbejdsløsheden har udviklet sig over tid – med fokus på tendenser, sæsonvariationer og forskelle mellem regioner og køn. Formålet er at identificere mønstre, som kan guide valg af modeller i den videre analyse.
 
 ### Udvikling over tid
 
@@ -151,9 +151,7 @@ I de følgende figurer undersøges udviklingen i arbejdsløsheden over tid. Til 
 data |> 
   filter(kon == "Kvinder") |> 
   autoplot(svalue) +
-  labs(
-    title = "Figur 1: Udvikling i kvinders arbejdsløshed pr. region",
-    x = "Tid", y = "Arbejdsløse pr. 10.000 personer"
+  labs(x = "Tid", y = "Arbejdsløse pr. 10.000 personer"
   ) +
   theme(legend.title = element_blank())
 ```
@@ -173,8 +171,6 @@ data |>
   filter(kon == "Mænd") |> 
   autoplot(svalue) +
   labs(
-    title = "Figur 2",
-    subtitle = "Udvikling i mænds arbejdsløshed pr. region",
     x = "Tid",
     y = "Arbejdsløse pr. 10.000 personer"
   ) +
@@ -217,7 +213,6 @@ ggplot(data_long, aes(x = yearmonth, y = value, color = kon, linetype = type)) +
   ) +
   labs(
     title = "Sammenligning af original og log-skala",
-    subtitle = "Log jævner variationerne i arbejdsløshedsdata",
     x = "Tid", y = "Værdi (arbejdsløse pr. 10.000)",
     color = "Køn",
     linetype = "Skala"
@@ -251,8 +246,6 @@ data |>
   filter(kon == "Mænd") |> 
   gg_season(log(svalue)) +
   labs(
-    title = "Figur 4",
-    subtitle = "Sæsonmønster for mænd pr. region (log-skala)",
     x = "Måned",
     y = "Log(Arbejdsløshed)"
   )
@@ -273,8 +266,6 @@ data |>
   filter(kon == "Kvinder") |> 
   gg_season(log(svalue)) +
   labs(
-    title = "Figur 5",
-    subtitle = "Sæsonmønster for kvinder pr. region (log-skala)",
     x = "Måned",
     y = "Log(Arbejdsløshed)"
   )
@@ -295,8 +286,6 @@ data |>
   filter(kon == "Mænd") |> 
   gg_subseries(log(svalue)) +
   labs(
-    title = "Figur 6",
-    subtitle = "Subserieplot for mænd pr. måned og region (log-skala)",
     x = "Måned",
     y = "Log(Arbejdsløshed)"
   )
@@ -316,8 +305,6 @@ data |>
   filter(kon == "Kvinder") |> 
   gg_subseries(log(svalue)) +
   labs(
-    title = "Figur 7",
-    subtitle = "Subserieplot for kvinder pr. måned og region (log-skala)",
     x = "Måned",
     y = "Arbejdsløshed"
   )
@@ -369,8 +356,6 @@ data |>
   aes(colour = kon, group = kon) +
   facet_wrap(~ region, scales = "free_y") +
   labs(
-    title = "Figur 9",
-    subtitle = "Arbejdsløshed fordelt på køn – opdelt efter region (log-skala)",
     y = "Log(Arbejdsløse pr. 10.000 personer)", x = "Tid",
     colour = "Køn"
   ) +
@@ -473,7 +458,7 @@ deskriptiv <- data |>
 
 # Visning
 deskriptiv |> 
-  kable(format = "markdown", digits = 2, caption = "Tabel 1: Deskriptiv statistik per region og køn") |> 
+  kable(format = "markdown", digits = 2, caption = "Deskriptiv statistik per region og køn") |> 
   kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover")) |> 
   row_spec(0, bold = TRUE, background = "#f0f0f0")
 
@@ -506,8 +491,7 @@ kvinder_STL |>
   components() |> 
   autoplot() +
   labs(
-    title = "Figur 10: STL-dekomposition for kvinder",
-    subtitle = "Log-transformeret arbejdsløshed pr. region",
+    title = "Log-transformeret arbejdsløshed pr. region",
     x = "Tid",
     y = "Log(arbejdsløshed)"
   )
@@ -532,8 +516,7 @@ mænd_STL |>
   components() |> 
   autoplot() +
   labs(
-    title = "Figur 11: STL-dekomposition for mænd",
-    subtitle = "Log-transformeret arbejdsløshed pr. region",
+    title = "Log-transformeret arbejdsløshed pr. region",
     x = "Tid",
     y = "Log(arbejdsløshed)"
   )
@@ -586,7 +569,7 @@ modelinfo <- models |>
 modelinfo |> 
   arrange(kon, region) |> 
   kable(format = "markdown",
-        caption = "Tabel 2: Automatisk valgte modelstrukturer for hver serie (region × køn)",
+        caption = "Automatisk valgte modelstrukturer for hver serie (region × køn)",
         align = "l") |> 
   kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover")) |> 
   row_spec(0, bold = TRUE, background = "#f0f0f0")
@@ -806,6 +789,7 @@ model_train |>
   filter(kon == "Kvinder", region == "Region Syddanmark") |> 
   select(ARIMA) |> 
   gg_tsresiduals()
+
 ```
 
 Figuren indeholder tre elementer: et residualplot over tid, et ACF-plot (autokorrelationsfunktion) og et histogram. Residualerne synes at være tilfældigt fordelt omkring nul, uden synlige systematiske mønstre. ACF-plottet viser ingen signifikant autokorrelation, og histogrammet er centreret og symmetrisk. Samlet indikerer dette, at modellen er veltilpasset og ikke efterlader systematisk information i fejlleddene. Dette mønster genfindes i de øvrige ARIMA-modeller og understøttes af de statistiske test nedenfor.
@@ -823,21 +807,76 @@ model_train |>
   features(.resid, ljung_box, lag = 24, dof = 0)
 ```
 
-For ARIMA-modellerne er p-værdierne generelt ikke-signifikante (p \> 0.05), hvilket indikerer ukorrellerede residualer og dermed en god modeltilpasning. ETS- og SNaive-modellerne har i flere tilfælde signifikante p-værdier, hvilket tyder på resterende struktur i fejlene. Det understøtter, at ARIMA ofte er den mest velegnede modeltype i dette datasæt.
+For ARIMA-modellerne er p-værdierne generelt ikke-signifikante (p > 0.05), hvilket indikerer ukorrellerede residualer og dermed god modeltilpasning. Omvendt viser ETS- og SNaive-modeller i flere tilfælde tegn på strukturer i residualerne. Det styrker indtrykket af, at ARIMA er den mest velegnede modeltype i dette datasæt.
 
-På tværs af test- og CV-resultater opnår ARIMA-modellerne den højeste præcision og opfylder modelantagelserne. De vælges derfor som grundlag for den videre forecastanalyse.
-
-På baggrund af denne modelvalidering foretages nu forecasts for året 2020, baseret på den bedst præsterende model for hver serie.
+På tværs af både testsplit og cross-validation opnår ARIMA den højeste forecast-præcision og opfylder modelantagelserne bedst. Den anvendes derfor som primær model i den videre analyse.
 
 # Forecasting
 
-## Træning og forecast for 2020
+På baggrund af modelvalideringen foretages nu egentlige forecasts for året 2020. For hver af de ti tidsserier anvendes den model, der klarede sig bedst under valideringen. Modellerne estimeres på hele perioden 2007–2019 for at sikre maksimal informationsudnyttelse i den endelige træning.
 
-## Prædiktionsintervaller
+## Estimering og forecast på 2020
 
-## Visualisering af forecasts
+Data frem til december 2019 bruges som træningsgrundlag. For hver serie estimeres ARIMA, ETS og SNaive, hvorefter det forecast vælges, som matcher den bedste modeltype (fra valideringen):
+
+```{r}
+data_train <- data |> filter_index(. ~ "2019 Dec")
+
+models_final <- data_train |> 
+  model(
+    ARIMA  = ARIMA(svalue),
+    ETS    = ETS(svalue),
+    SNaive = SNAIVE(svalue)
+  )
+
+forecast_2020 <- models_final |> forecast(h = "12 months")
+
+forecast_best <- forecast_2020 |> 
+  inner_join(vinder_modeller, by = c("kon", "region", ".model"))
+
+```
+
+
+## Visualisering med prædiktionsintervaller
+
+Forecasts for 2020 visualiseres for alle serier med prædiktionsintervaller på 80% og 95%. Den bedste model for hver serie fremgår af farven på forecast-linjen og angives desuden som label i hvert facet.
+
+```{r}
+labels <- vinder_modeller |> 
+  mutate(label = paste0("Model: ", .model))
+
+forecast_best |> 
+  autoplot(data) +
+  geom_text(data = labels,
+            aes(x = as.Date("2020-01-01"), y = Inf, label = label),
+            inherit.aes = FALSE,
+            vjust = 1.5, hjust = 0, size = 3.2, fontface = "italic") +
+  facet_grid(region ~ kon, scales = "free_y") +
+  labs(
+    title = "Forecast for 2020 – bedste model pr. serie",
+    subtitle = "Med 80% og 95% prædiktionsintervaller (grå bånd)",
+    y = "Arbejdsløse pr. 10.000 personer", 
+    x = "Tid"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    plot.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold")
+  )
+
+```
+Forecast vises med farvet linje (model) og grå bånd for prædiktionsintervaller. De to niveauer (80% og 95%) angiver forskellig grad af usikkerhed.
 
 ## Centrale prognoseværdier
+```{r}
+forecast_best |> 
+  group_by(kon, region) |> 
+  summarise(prognose2020 = mean(.mean, na.rm = TRUE))
+```
+Med udgangspunkt i validerede modeller er der nu genereret forecasts for 2020. I næste afsnit analyseres og sammenlignes de centrale resultater på tværs af køn og regioner.
+
 
 # Sammenligning og fortolkning
 
