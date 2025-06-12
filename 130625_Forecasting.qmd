@@ -42,7 +42,7 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 \fcolorbox{gray}{white}{
 \parbox{0.8\textwidth}{
 \centering
-\textbf{Antal tegn (inkl. mellemrum): 97023}
+\textbf{Antal tegn (inkl. mellemrum): 32.000}
 }}
 \end{center}
 \begin{center}
@@ -299,11 +299,17 @@ Tabel 2 præsenterer udvalgte mål, der beskriver centrale træk ved serierne og
 
 features_all <- readRDS("data/feature_table.rds")
 
-features_all |>
+# Udvælg relevante kolonner
+features_all_selected <- features_all |>
   select(kon, region,
          acf1, seasonal_strength_year,
          var_tiled_mean, shift_level_max,
          ndiffs, trend_strength)
+# Styling
+features_all_selected  |> 
+  kable(format = "markdown", digits = 2, caption = "Deskriptiv statistik per region og køn") |> 
+  kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover")) |> 
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
 
 ```
 
@@ -384,7 +390,8 @@ Disse observationer fra STL-dekompositionen bekræfter, at både trend og sæson
 
 # Modelvalg
 
-I dette afsnit estimeres og sammenlignes tre klassiske modeltyper, ARIMA, ETS og benchmarkmodellen SNaive, for hver tidsserie (region × køn). Hver modeltype har forskellige antagelser og fordele og kan fange forskellige karakteristika i data, såsom trend, sæson og autokorrelation. Modelvalget foretages automatisk for hver serie via fable-pakken, og resultaterne anvendes i den efterfølgende validering og forecast.
+I dette afsnit præsenteres tre klassiske modeltyper: ARIMA, ETS og benchmarkmodellen SNaive for hver af de ti tidsserier, defineret ved kombinationen af region og køn. Modellerne adskiller sig i deres antagelser og egenskaber og er hver især velegnede til at fange strukturelle træk som trend, sæson og autokorrelation. Estimeringen foretages automatisk med fable pakken, som identificerer den bedst passende specifikation for hver serie. Den endelige vurdering af modellerne og deres præcision i fremskrivning gennemføres i næste afsnit, Modelvalidering.
+
 
 ## Valgte modeltyper
 
@@ -398,6 +405,8 @@ ETS-modeller benytter eksponentiel glatning til at vægte nyere observationer h�
 SNaive er en enkel benchmarkmodel, der baserer hvert forecast på den tilsvarende værdi fra samme sæson i den foregående periode. Modellen fanger sæsonmønstre, men tager ikke højde for trend eller afhængighed i data. Den anvendes til at vurdere, om mere komplekse modeller giver en mærkbart bedre forecast-præcision (Hyndman & Athanasopoulos, 2021, kap. 3 og 8).
 
 # Modelvalidering
+
+Dette afsnit har til formål at sikre, at modellerne giver pålidelige forecasts og ikke blot overtilpasser sig historiske data. Gennem tidsserie-crossvalidering, fejlmålinger som RMSE og MAPE, samt residualanalyse identificeres den bedst egnede model for hver serie, baseret på forecastpræcision og modeladfærd.
 
 ## Splitning af datasættet
 
@@ -633,6 +642,16 @@ De fleste forecasts viser relativt stabile niveauer i arbejdsløsheden, men for 
 Visualiseringen illustrerer både det forventede niveau og usikkerheden i prognoserne, og den bekræfter, at modellerne er i stand til at fange forskelle mellem regioner og køn.
 
 # Konsklusion
+
+Denne opgave har undersøgt, hvordan klassiske tidsseriemodeller som ARIMA, ETS og benchmarkmodellen SNaive kan anvendes til at analysere og forudsige udviklingen i arbejdsløsheden i Danmark, opdelt på region og køn. Analysen bygger på ti tidsserier, som dækker perioden 2007 til 2019, og er gennemført med fokus på datamønstre, modelestimering og forudsigelsespræcision.
+
+Den eksplorative analyse viste tydelige sæsonvariationer og regionale forskelle i arbejdsløsheden, især blandt mænd. Med log-transformerede data og STL-dekomposition blev det muligt at fremhæve og vurdere trends og sæsonkomponenter i de enkelte serier. Beregningen af features og deskriptive mål bekræftede høj autokorrelation og gennemgående trends, hvilket er væsentligt for valg af modeltype.
+
+Modelvalideringen pegede på ARIMA som den mest præcise model i ni ud af ti serier. Krydsvalidering, residualanalyse og Ljung-Box-tests indikerede generelt, at modellerne var godt tilpasset og havde uafhængige fejlled. En undtagelse blev identificeret for ETS-modellen i Region Hovedstaden, hvor residualerne udviste autokorrelation, hvilket giver anledning til tvivl om modellens egnethed i denne sammenhæng.
+
+Sammenligningen mellem modellernes forudsigelser og de faktiske observationer i 2019 viste overordnet god overensstemmelse. Prognoserne for 2020 antyder overvejende stabile niveauer, men med stigende usikkerhed i visse mandlige serier, særligt i Region Syddanmark og Midtjylland.
+
+Samlet set viser analysen, at klassiske tidsseriemodeller, særligt ARIMA, egner sig godt til at beskrive og forudsige arbejdsløsheden i et dansk kontekstuelt rum, forudsat at modellerne valideres grundigt og vurderes kritisk i forhold til residualstruktur og prognoseegenskaber.
 
 
 
