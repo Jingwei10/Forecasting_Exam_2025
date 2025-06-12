@@ -258,15 +258,15 @@ nationale økonomi og indgår som en væsentlig faktor i politiske og
 forbedrede statistiske værktøjer er det blevet muligt at analysere og
 forudsige sådanne udviklingstræk med større præcision.
 
-Denne opgave undersøger udviklingen i arbejdsløsheden i Danmark i
-perioden 2007 til 2019 -- opdelt på køn og region. Datagrundlaget består
-af ti tidsserier, én for hver kombination af fem regioner og to køn. Det
+Denne opgave undersøger arbejdsløshedens udvikling i Danmark fra 2007
+til 2019, fordelt på køn og region. Datagrundlaget består af ti
+tidsserier, der dækker hver kombination af fem regioner og to køn. Det
 giver mulighed for at analysere både regionale forskelle og
 kønsspecifikke mønstre i arbejdsløsheden.
 
-Med udgangspunkt i klassiske tidsseriemodeller, ARIMA, ETS og en simpel
-benchmarkmodel (Seasonal Naive), undersøges, hvordan arbejdsløsheden har
-udviklet sig, og hvordan den kan fremskrives. Undervejs vurderes
+Analysen baseres på tre klassiske modeltyper: ARIMA, ETS og en enkel
+benchmarkmodel (Seasonal Naive). Modellerne anvendes til at undersøge
+historiske tendenser og fremskrive udviklingen. Undervejs vurderes
 modellernes egnethed med fokus på præcision og residualstruktur, og der
 anvendes teknikker som STL-dekomposition og transformation af data.
 Målet er ikke blot at forudsige udviklingen i 2020, men også at vurdere,
@@ -302,19 +302,19 @@ For at besvare dette spørgsmål undersøges følgende delspørgsmål:
 Analysen baserer sig udelukkende på de udleverede arbejdsløshedstal for
 perioden januar 2007 til december 2019 og anvender ingen eksterne
 forklaringsvariable såsom COVID-19, økonomiske indikatorer eller
-politiske reformer. Dette valg er truffet for at isolere og vurdere
-forecasting-modellernes metodiske egenskaber. Fokus er dermed på
-reproducerbar, statistisk modellering -- ikke på årsagsforklaring eller
-samfundsøkonomisk fortolkning.
+politiske reformer. Formålet er at isolere de metodiske egenskaber ved
+modellerne og vurdere deres evne til at håndtere mønstre i selve
+tidsserierne. Fokus er således på statistisk modellering og forecast --
+ikke på årsagsforklaringer eller samfundsøkonomiske vurderinger.
 
 \subsubsection{Anvendelse af
 AI-værktøj}\label{anvendelse-af-ai-vuxe6rktuxf8j}
 
 ChatGPT (GPT-4o) er anvendt som støtteværktøj i forbindelse med
-idéudvikling, sproglig formulering og udformning af enkelte kodestumper.
-Værktøjet er kun brugt til tekniske og sproglige formål -- al analyse,
-fortolkning og konklusion er udarbejdet selvstændigt af gruppens
-medlemmer.
+idéudvikling, sproglig formulering og udformning af kodestumper.
+Værktøjet er kun brugt til tekniske og sproglige formål. Det
+understreges derfor at al analyse, fortolkning og konklusion er
+udarbejdet selvstændigt af gruppens medlemmer.
 
 \subsection{Definitioner/forkortelser}\label{definitionerforkortelser}
 
@@ -356,7 +356,7 @@ Analysen bygger på månedlige arbejdsløshedstal fra Danmark i perioden
 januar 2007 til december 2019. Data er opdelt efter køn og region,
 hvilket giver ti separate tidsserier. Datasættet er udleveret i et
 forbehandlet tsibble-format med tydeligt definerede indeks- og
-nøglevariabler, og nedenfor indlæses datasættet:
+nøglevariabler. Nedenfor vises indlæsningen af datasættet:
 
 \begin{verbatim}
 # A tsibble: 6 x 4 [1M]
@@ -386,7 +386,7 @@ fundament for det videre modelarbejde.
 mønstre}\label{visualisering-af-udvikling-og-muxf8nstre}
 
 I dette afsnit undersøges, hvordan arbejdsløsheden har udviklet sig over
-tid -- med fokus på tendenser, sæsonvariationer og forskelle mellem
+tid med fokus på tendenser, sæsonvariationer og forskelle mellem
 regioner og køn. Formålet er at identificere mønstre, som kan guide valg
 af modeller i den videre analyse.
 
@@ -401,12 +401,12 @@ forecast.
 
 \pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/figur 1-1.pdf}}
 
-Ovenstående figur viser den månedlige arbejdsløshed blandt mænd og
-kvinder i de fem danske regioner fra 2007 til 2019. Der fremgår et
-tydeligt sæsonmønster med højere ledighed i vintermånederne og lavere i
-sommerperioden. Niveauet varierer regionalt, hvor Region Hovedstaden
-typisk ligger højest og Nordjylland lavest. Samlet ses en faldende
-tendens efter finanskrisen.
+Figur 1 viser udviklingen i arbejdsløsheden fra 2007 til 2019 for begge
+køn i alle fem regioner. Der tegner sig et tydeligt sæsonmønster med
+højere ledighed i vintermånederne og lavere i sommerperioden. Region
+Hovedstaden har generelt højere ledighedsniveau, mens Nordjylland og
+Sjælland ligger lavere. Efter finanskrisen ses en gradvis nedgang i
+ledigheden i næsten alle grupper.
 
 \pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/figur 2-1.pdf}}
 
@@ -426,34 +426,27 @@ adskiller sig mellem mænd og kvinder samt på tværs af regioner.
 
 \pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/figur 3-1.pdf}}
 
-Figur 3 viser sæsonmønstre i arbejdsløsheden pr. region og køn
-(log-transformeret). Hver farve repræsenterer et år, og linjerne viser
-en tydelig sæsonrytme med høj ledighed i årets begyndelse og lav i
-sommermånederne. Mænd udviser generelt større sæsonudsving end kvinder.
-Niveauet er højest i Region Hovedstaden og lavest i Nordjylland og
-Sjælland. Negative log-værdier forekommer, hvor arbejdsløsheden ligger
-under 1 pr. 10.000.
+Figur 3 viser sæsonmønstre i arbejdsløsheden fordelt på region og køn
+(logtransformeret). Hver farve repræsenterer et år. Der ses et klart
+mønster med høj ledighed i årets begyndelse og lav i sommermånederne.
+Mænd har generelt større udsving end kvinder. Niveauet er højest i
+Hovedstaden og lavest i Nordjylland og Sjælland. Negative logværdier
+optræder, når arbejdsløsheden ligger under én pr. 10.000.
 
 \pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/figur 4-1.pdf}}
 
-Figur 4 viser subserieplottet for arbejdsløshedens udvikling for mænd
-pr. måned og region. Hver celle viser forløbet for en specifik måned
-over årene, med sorte linjer for de enkelte år og blå linjer for
-gennemsnit. Ledigheden topper typisk i årets første måneder og falder
-hen over sommeren. Mænd udviser generelt større sæsonudsving og højere
-variation mellem år, især i vinterhalvåret.
+Figur 4 viser subserieplot for mænd, hvor hver celle viser udviklingen i
+én måned over årene. Sorte linjer angiver observationer, blå linjer
+gennemsnit. Der ses høj ledighed i årets første måneder og fald hen over
+sommeren. Mænd har større sæsonudsving og højere variation mellem år,
+især i vinterhalvåret.
 
 \pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/figur 5-1.pdf}}
 
-Sammenlignet med mænd viser kvinder tilsvarende sæsonmønstre med højere
-ledighed i årets begyndelse og lavere i sommermånederne. Udsvingene er
-dog mindre markante, og variationen mellem år er mindre tydelig.
-Mønstret fremstår mere stabilt og jævnt fordelt på tværs af regioner,
-hvilket tyder på lavere volatilitet i kvindernes arbejdsløshed.
-
-Udover sæsonmæssige udsving varierer arbejdsløsheden betydeligt på tværs
-af både geografi og køn. Dette undersøges nærmere i de følgende
-visualiseringer.
+Tilsvarende viser Figur 5 sæsonmønstre for kvinder. Mønstret er det
+samme som for mænd, men udsvingene er mindre. Forskellene mellem år er
+mindre tydelige. Udviklingen er mere stabil og jævnt fordelt, hvilket
+tyder på lavere variation i kvinders arbejdsløshed.
 
 For at underbygge disse visuelle indsigter med konkrete tal, præsenteres
 i næste afsnit deskriptive statistikker. De giver en numerisk
@@ -503,7 +496,7 @@ Tabel 2 præsenterer udvalgte mål, der beskriver centrale træk ved
 serierne og uddyber de visuelle indsigter fra Figur 1--5. Den
 bagvedliggende kode, herunder brugen af features()-funktionen og
 indlæsning af dataobjektet feature\_table.rds, er dokumenteret i Bilag
-X.
+1.
 
 \begin{longtable}[t]{llrrrrrr}
 \caption{Deskriptiv statistik per region og køn}\\
@@ -620,13 +613,14 @@ vil blive præsenteret i det følgende afsnit.
 
 \section{Modelvalg}\label{modelvalg}
 
-I dette afsnit estimeres og sammenlignes tre klassiske modeltyper,
-ARIMA, ETS og benchmarkmodellen SNaive, for hver tidsserie (region ×
-køn). Hver modeltype har forskellige antagelser og fordele og kan fange
-forskellige karakteristika i data, såsom trend, sæson og
-autokorrelation. Modelvalget foretages automatisk for hver serie via
-fable-pakken, og resultaterne anvendes i den efterfølgende validering og
-forecast.
+I dette afsnit præsenteres tre klassiske modeltyper: ARIMA, ETS og
+benchmarkmodellen SNaive. Hver model estimeres for de ti tidsserier, der
+er defineret som kombinationer af region og køn. Modellerne adskiller
+sig i deres antagelser og egenskaber og er hver især velegnede til at
+fange strukturelle mønstre som trend, sæson og autokorrelation.
+Estimeringen foretages automatisk med fable-pakken, som vælger den bedst
+egnede specifikation for hver serie. Den endelige vurdering af
+modellernes præcision og egnethed gennemføres i næste afsnit.
 
 \subsection{Valgte modeltyper}\label{valgte-modeltyper}
 
@@ -650,8 +644,8 @@ modellere autokorrelation direkte (Hyndman \& Athanasopoulos, 2021, kap.
 8).
 
 \textbf{SNAÏVE (Seasonal Naive)}\\
-SNaive er en enkel benchmarkmodel, der baserer hvert forecast på den
-tilsvarende værdi fra samme sæson i den foregående periode. Modellen
+SNaive er en simpel sammenligningsmodel, der baserer hvert forecast på
+den tilsvarende værdi fra samme sæson i den foregående periode. Modellen
 fanger sæsonmønstre, men tager ikke højde for trend eller afhængighed i
 data. Den anvendes til at vurdere, om mere komplekse modeller giver en
 mærkbart bedre forecast-præcision (Hyndman \& Athanasopoulos, 2021, kap.
@@ -660,16 +654,21 @@ mærkbart bedre forecast-præcision (Hyndman \& Athanasopoulos, 2021, kap.
 \section{Modelvalidering}\label{modelvalidering}
 
 Dette afsnit har til formål at sikre, at modellerne giver pålidelige
-forecasts og ikke blot overtilpasser sig historiske data. Gennem
-tidsserie-crossvalidering, fejlmålinger som RMSE og MAPE, samt
-residualanalyse identificeres den bedst egnede model for hver serie,
-baseret på forecastpræcision og modeladfærd.
+fremskrivninger og ikke blot tilpasser sig historiske data. Der anvendes
+time series cross-validation, og modellerne evalueres ved hjælp af
+metrikker som RMSE og MAPE. På baggrund af dette identificeres den bedst
+egnede model for hver tidsserie. Derudover foretages residualanalyse for
+at undersøge, om der er tegn på hvid støj, hvilket er en forudsætning
+for valide modeller.
 
-\subsection{Splitning af datasættet}\label{splitning-af-datasuxe6ttet}
+\subsection{Opdeling af data i træning og
+test}\label{opdeling-af-data-i-truxe6ning-og-test}
 
-Vi starter med at splitte datasættet op i et træningssæt og et testsæt.
-Testsættet er dataen fra hele 2019, som er det sidste år i det samlede
-datasæt, og træningssættet er alt den forrige data fra 2007-2018.
+Datasættet opdeles i to perioder for at kunne evaluere modellernes
+præcision på nye observationer. Træningssættet dækker perioden januar
+2007 til december 2018, mens testsættet består af data fra januar til
+december 2019. Denne opdeling gør det muligt at sammenligne modellerne
+på ens vilkår og vurdere deres evne til at generalisere.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -678,18 +677,19 @@ datasæt, og træningssættet er alt den forrige data fra 2007-2018.
 \end{Highlighting}
 \end{Shaded}
 
-\subsection{Time-series
-Cross-validation}\label{time-series-cross-validation}
+\subsection{Time series
+cross-validation}\label{time-series-cross-validation}
 
-Herunder udføres tidsserie-krydsvalidering udelukkende på træningsdataen
-med et rullende vindue på 60 måneder. Vi anvender stretch\_tsibble() til
-at generere flere trænings- og test-split, som forskydes én måned ad
-gangen. Tre modeller evalueres: ARIMA, ETS og en sæsonbetonet naiv model
-(SNaive) -- alle på log-transformerede data.
+For at vurdere modellernes forecast-præcision anvendes time series
+cross-validation på træningsdata. Et rullende vindue på 60 måneder
+anvendes til at generere flere trænings- og test-split, forskudt én
+måned ad gangen. Der anvendes stretch\_tsibble() til at generere flere
+trænings- og test-split, som forskydes én måned ad gangen. Tre modeller
+evalueres: ARIMA, ETS og SNaive.
 
-Forecastfejlene beregnes med accuracy(), og beregningerne køres
-parallelt for hurtigere eksekvering. Resultaterne gemmes med
-write\_rds() for reproducérbarhed.
+Alle modeller estimeres på logtransformerede data. Forecastfejlene
+beregnes med accuracy(), og beregningerne køres parallelt for hurtigere
+eksekvering. Resultaterne gemmes med write\_rds() for reproducérbarhed.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -716,8 +716,8 @@ write\_rds() for reproducérbarhed.
 \end{Highlighting}
 \end{Shaded}
 
-\subsubsection{Valg af bedste model for hver tidsserie, baseret på
-CV}\label{valg-af-bedste-model-for-hver-tidsserie-baseret-puxe5-cv}
+\subsubsection{Valg af den bedst præsterende
+model}\label{valg-af-den-bedst-pruxe6sterende-model}
 
 Her identificeres den bedste model for hver kombination af køn og region
 baseret på laveste RMSE. Ved at gruppere på kon og region og vælge
@@ -761,8 +761,17 @@ ETS-vinder indikerer dog, at i nogle tilfælde kan eksponentiel glatning
 være mere passende -- muligvis pga. mere stabil sæson uden kompleks
 autokorrelation.
 
-\subsection{Træning af vindermodel på hele datasættet og test på
-2019-data}\label{truxe6ning-af-vindermodel-puxe5-hele-datasuxe6ttet-og-test-puxe5-2019-data}
+\subsection{Forecast for 2019 med
+vinder-modeller}\label{forecast-for-2019-med-vinder-modeller}
+
+Når den bedst præsterende model er udpeget for hver tidsserie via
+cross-validation, trænes alle tre modeller (ARIMA, ETS og SNaive) på
+hele træningsperioden fra januar 2007 til december 2018. Herefter laves
+et 12-måneders forecast for 2019.
+
+Forecastet baseres kun på den tidligere udpegede vinder for hver serie,
+hvilket sikres ved at filtrere resultatet med inner\_join() mod
+vinder\_cv.
 
 \begin{Shaded}
 \begin{Highlighting}[]
@@ -784,36 +793,18 @@ autokorrelation.
 \end{Highlighting}
 \end{Shaded}
 
-Her gentrænes alle tre modeller på hele træningsperioden fra 2010 til
-2018. Derefter laves et 12-måneders forecast for 2019, som svarer til
-testperioden. Ved at forecaste alle modeller og derefter filtrere til
-den tidligere udpegede vinder (inner\_join() med vinder\_cv), sikrer vi,
-at den bedste model anvendes til hver serie i den endelige evaluering.
-
-Her sammenlignes trænings- og testfejl for hver serie ved at kombinere
-dem i én tabel (train\_vs\_test). Dette giver overblik over, hvorvidt
-modellerne generaliserer godt --- altså om performance på testdata
-svarer til performance på træningsdata.
+Forecastet for 2019 baseres dermed på den model, som tidligere blev
+vurderet som bedst egnet til den enkelte serie. Dette danner grundlag
+for at sammenligne modellens præcision på træningsdata og dens evne til
+at generalisere til nye observationer i testsættet.
 
 \subsection{Sammenligning af trænings- og
-testscore}\label{sammenligning-af-truxe6nings--og-testscore}
+testfejl}\label{sammenligning-af-truxe6nings--og-testfejl}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{test\_accuracy }\OtherTok{\textless{}{-}}\NormalTok{ forecast\_2019 }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{accuracy}\NormalTok{(test\_data) }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{select}\NormalTok{(kon, region, .model, RMSE, MAPE)}
-
-\NormalTok{train\_vs\_test }\OtherTok{\textless{}{-}} \FunctionTok{left\_join}\NormalTok{(train\_accuracy, test\_accuracy,}
-                           \AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"kon"}\NormalTok{, }\StringTok{"region"}\NormalTok{, }\StringTok{".model"}\NormalTok{))}
-
-\NormalTok{train\_vs\_test }\OtherTok{\textless{}{-}}\NormalTok{ train\_vs\_test }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(RMSE)) }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{relocate}\NormalTok{(RMSE, }\AttributeTok{.after =}\NormalTok{ RMSE\_tr)}
-
-\NormalTok{train\_vs\_test}
-\end{Highlighting}
-\end{Shaded}
+For at vurdere modellernes evne til at generalisere sammenlignes
+forecastfejl på trænings- og testdata. Dette gøres ved at kombinere de
+to i én samlet tabel (train\_vs\_test), hvor RMSE og MAPE for hver serie
+fremgår.
 
 \begin{verbatim}
 # A tibble: 10 x 7
@@ -841,20 +832,12 @@ overfitting eller uforudsete udsving i 2019.
 \subsubsection{Analyse af residualer og
 autokorrelation}\label{analyse-af-residualer-og-autokorrelation}
 
-Der er herunder udvalgt 3 tidsserier med forskellige situationer ift.
-forskellen på trænings- og testscore, som der er blevet dykket længere
-ned i med gg\_tsresiduals.
+For at undersøge modellernes egenskaber nærmere foretages en
+residualanalyse af tre udvalgte tidsserier med forskellige resultater i
+forhold til trænings- og testfejl. Visualiseringerne genereres med
+gg\_tsresiduals() og omfatter residualplot, histogram og ACF-plot.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{model\_train }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{filter}\NormalTok{(kon }\SpecialCharTok{==} \StringTok{"Mænd"}\NormalTok{, region }\SpecialCharTok{==} \StringTok{"Region Syddanmark"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{select}\NormalTok{(ARIMA) }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{gg\_tsresiduals}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
-
-\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-8-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-7-1.pdf}}
 
 Der er kigget nærmere på tidsserien for mænd i region Syddanmark, da den
 har relativt høj test-RMSE ift. de andre og høj forskel på trænings- og
@@ -874,16 +857,7 @@ ekstreme observationer og den relativt høje forecastfejl på testdata
 (RMSE = 0.085) antyder, at modellen kan være følsom over for enkelte
 udsving.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{model\_train }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{filter}\NormalTok{(kon }\SpecialCharTok{==} \StringTok{"Mænd"}\NormalTok{, region }\SpecialCharTok{==} \StringTok{"Region Midtjylland"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{select}\NormalTok{(ARIMA) }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{gg\_tsresiduals}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
-
-\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-9-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-8-1.pdf}}
 
 Der er kigget nærmere på tidsserien for mænd i region Midtjylland, da
 den har lav test-RMSE ift. trænings-RMSE.
@@ -901,16 +875,7 @@ stemmer godt overens med den relativt lave RMSE på testdata (RMSE =
 0.019) sammenlignet med en højere træningsfejl (RMSE = 0.050), hvilket
 tyder på, at modellen generaliserer bedre end forventet.
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{model\_train }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{filter}\NormalTok{(kon }\SpecialCharTok{==} \StringTok{"Kvinder"}\NormalTok{, region }\SpecialCharTok{==} \StringTok{"Region Nordjylland"}\NormalTok{) }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{select}\NormalTok{(ARIMA) }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{gg\_tsresiduals}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
-
-\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-10-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-9-1.pdf}}
 
 Til sidst er der kigget nærmere på tidsserien for kvinder i region
 Nordjylland, da den har lav test-RMSE og lav trænings-RMSE.
@@ -931,20 +896,10 @@ for denne serie. Det stemmer overens med en lav forecastfejl på testdata
 \subsubsection{Ljung-tests for
 tidsserier}\label{ljung-tests-for-tidsserier}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{ljung\_box\_results }\OtherTok{\textless{}{-}}\NormalTok{ model\_train }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{augment}\NormalTok{() }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{features}\NormalTok{(.innov, ljung\_box, }\AttributeTok{lag =} \DecValTok{24}\NormalTok{, }\AttributeTok{dof =} \DecValTok{3}\NormalTok{)}
-
-\NormalTok{ljung\_box\_vindere }\OtherTok{\textless{}{-}}\NormalTok{ ljung\_box\_results }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{inner\_join}\NormalTok{(vinder\_cv, }\AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"kon"}\NormalTok{, }\StringTok{"region"}\NormalTok{, }\StringTok{".model"}\NormalTok{)) }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{select}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-For hver vinder-model er der udført en Ljung-Box test med 24 lags og 3
-frihedsgrader for at vurdere, om residualerne er serielt uafhængige.
+For at vurdere, om modellerne har fanget den systematiske struktur i
+data, er der udført en Ljung-Box test på residualerne fra hver
+vinder-model. Testen er sat op med 24 lags og 3 frihedsgrader og udføres
+med features(.innov, ljung\_box).
 
 Resultaterne viser, at 9 ud af 10 modeller har høje p-værdier, hvilket
 betyder, at vi ikke forkaster nulhypotesen om uafhængige residualer. Det
@@ -963,35 +918,10 @@ af en god tidsseriemodel.
 \section{Sammenligning af 2019 forudsigelser og
 virkeligheden}\label{sammenligning-af-2019-forudsigelser-og-virkeligheden}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{forecast\_vs\_actual }\OtherTok{\textless{}{-}}\NormalTok{ forecast\_2019 }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{left\_join}\NormalTok{(}
-\NormalTok{    test\_data }\SpecialCharTok{|\textgreater{}} \FunctionTok{select}\NormalTok{(kon, region, yearmonth, }\AttributeTok{actual =}\NormalTok{ svalue),}
-    \AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"kon"}\NormalTok{, }\StringTok{"region"}\NormalTok{, }\StringTok{"yearmonth"}\NormalTok{)}
-\NormalTok{  )}
-
-\NormalTok{forecast\_vs\_actual }\SpecialCharTok{|\textgreater{}}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ yearmonth)) }\SpecialCharTok{+}
-  \FunctionTok{geom\_line}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ actual), }\AttributeTok{color =} \StringTok{"black"}\NormalTok{, }\AttributeTok{size =} \FloatTok{0.9}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"solid"}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{geom\_line}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ .mean), }\AttributeTok{color =} \StringTok{"blue"}\NormalTok{, }\AttributeTok{size =} \FloatTok{0.9}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{facet\_grid}\NormalTok{(region }\SpecialCharTok{\textasciitilde{}}\NormalTok{ kon, }\AttributeTok{scales =} \StringTok{"free\_y"}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}
-    \AttributeTok{title =} \StringTok{"Forecast vs. Faktiske værdier – 2019"}\NormalTok{,}
-    \AttributeTok{y =} \StringTok{"Arbejdsløse pr. 10.000 personer"}\NormalTok{,}
-    \AttributeTok{x =} \StringTok{"Tid"}\NormalTok{,}
-    \AttributeTok{caption =} \StringTok{"Sort = Faktisk | Blå = Forecast"}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{13}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-12-1.pdf}}
-
-Plottet viser en sammenligning mellem de faktiske observationer (sort)
-og modellernes punktprognoser (blå) for 2019, opdelt på køn og region.
-Generelt følger prognoserne udviklingen i de faktiske data tæt, hvilket
-bekræfter, at modellerne har god forudsigelsesevne.
+Plottet nedenfor viser en sammenligning mellem de faktiske observationer
+(sort) og modellernes punktprognoser (blå) for 2019, opdelt på køn og
+region. Generelt følger prognoserne udviklingen i de faktiske data tæt,
+hvilket bekræfter, at modellerne har god forudsigelsesevne.
 
 Særligt for mænd i Region Midtjylland og Nordjylland er der meget tæt
 overensstemmelse. Derimod ses systematiske afvigelser for mænd i Region
@@ -999,60 +929,67 @@ Syddanmark og kvinder i Region Hovedstaden, hvor modellerne
 undervurderer eller overvurderer udviklingen. Det stemmer overens med de
 højere RMSE-værdier og residualanalyser for disse serier.
 
+\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-11-1.pdf}}
+
 \section{Forecasting af 2020 for alle
 tidsserier}\label{forecasting-af-2020-for-alle-tidsserier}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{data\_train\_final }\OtherTok{\textless{}{-}}\NormalTok{ data}
+Plottet nedenfor viser en 12-måneders fremskrivning af arbejdsløsheden i
+2020 baseret på den model, der tidligere blev vurderet som bedst for
+hver kombination af køn og region. Forecastet er suppleret med 80\% og
+95\% prædiktionsintervaller.
 
-\NormalTok{models\_final }\OtherTok{\textless{}{-}}\NormalTok{ data\_train\_final }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{model}\NormalTok{(}
-    \AttributeTok{ARIMA  =} \FunctionTok{ARIMA}\NormalTok{(}\FunctionTok{log}\NormalTok{(svalue)),}
-    \AttributeTok{ETS    =} \FunctionTok{ETS}\NormalTok{(}\FunctionTok{log}\NormalTok{(svalue)),}
-    \AttributeTok{SNaive =} \FunctionTok{SNAIVE}\NormalTok{(}\FunctionTok{log}\NormalTok{(svalue))}
-\NormalTok{  )}
+For hovedparten af serierne er ARIMA-modellen anvendt (vist i rød), mens
+ETS-modellen (turkis) kun er valgt for kvinder i Region Hovedstaden.
 
-\NormalTok{forecast\_2020 }\OtherTok{\textless{}{-}}\NormalTok{ models\_final }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{forecast}\NormalTok{(}\AttributeTok{h =} \StringTok{"12 months"}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{inner\_join}\NormalTok{(vinder\_cv, }\AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"kon"}\NormalTok{, }\StringTok{"region"}\NormalTok{, }\StringTok{".model"}\NormalTok{))}
+Prognoserne viser overvejende stabile niveauer gennem året, men særligt
+for mænd i Region Midtjylland og Region Syddanmark ses en markant
+stigning i arbejdsløsheden og bredere prædiktionsintervaller mod årets
+slutning. Dette afspejler større usikkerhed i netop disse serier.
 
-\NormalTok{forecast\_2020 }\SpecialCharTok{|\textgreater{}} 
-  \FunctionTok{autoplot}\NormalTok{(}\AttributeTok{level =} \FunctionTok{c}\NormalTok{(}\DecValTok{80}\NormalTok{, }\DecValTok{95}\NormalTok{)) }\SpecialCharTok{+}
-  \FunctionTok{facet\_grid}\NormalTok{(region }\SpecialCharTok{\textasciitilde{}}\NormalTok{ kon, }\AttributeTok{scales =} \StringTok{"free\_y"}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}
-    \AttributeTok{title =} \StringTok{"Forecast for 2020 – bedste model pr. serie"}\NormalTok{,}
-    \AttributeTok{subtitle =} \StringTok{"Med 80\% og 95\% prædiktionsintervaller"}\NormalTok{,}
-    \AttributeTok{y =} \StringTok{"Arbejdsløse pr. 10.000 personer"}\NormalTok{,}
-    \AttributeTok{x =} \StringTok{"Tid"}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_minimal}\NormalTok{(}\AttributeTok{base\_size =} \DecValTok{12}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{theme}\NormalTok{(}
-    \AttributeTok{legend.position =} \StringTok{"bottom"}\NormalTok{,}
-    \AttributeTok{legend.title =} \FunctionTok{element\_blank}\NormalTok{(),}
-    \AttributeTok{plot.title =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{),}
-    \AttributeTok{strip.text =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{face =} \StringTok{"bold"}\NormalTok{)}
-\NormalTok{  )}
-\end{Highlighting}
-\end{Shaded}
+Visualiseringen tydeliggør forskellene mellem køn og region og
+bekræfter, at modellerne formår at fange både strukturelle niveauer og
+variabilitet i data.
 
-\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-13-1.pdf}}
+\pandocbounded{\includegraphics[keepaspectratio]{130625_Forecasting_files/figure-pdf/unnamed-chunk-12-1.pdf}}
 
-Plottet viser 12 måneders fremskrivning for 2020 baseret på den bedste
-model pr. serie, suppleret med 80\% og 95\% prædiktionsintervaller. For
-de fleste serier anvendes ARIMA (rød), mens ETS (turkis) kun bruges for
-kvinder i Region Hovedstaden.
-
-De fleste forecasts viser relativt stabile niveauer i arbejdsløsheden,
-men for flere mandlige serier (især Region Syddanmark og Midtjylland)
-ses en tydelig stigning og stigende usikkerhed hen over året -- hvilket
-afspejles i de bredere konfidensbånd.
-
-Visualiseringen illustrerer både det forventede niveau og usikkerheden i
-prognoserne, og den bekræfter, at modellerne er i stand til at fange
-forskelle mellem regioner og køn.
+Dermed afsluttes forecastdelen med en samlet visualisering, som
+underbygger analysens centrale fund og danner baggrund for den
+afsluttende vurdering.
 
 \section{Konsklusion}\label{konsklusion}
+
+Denne opgave har undersøgt, hvordan klassiske tidsseriemodeller som
+ARIMA, ETS og benchmarkmodellen SNaive kan anvendes til at analysere og
+forudsige udviklingen i arbejdsløsheden i Danmark, opdelt på region og
+køn. Analysen bygger på ti tidsserier, som dækker perioden 2007 til
+2019, og er gennemført med fokus på datamønstre, modelestimering og
+forudsigelsespræcision.
+
+Den eksplorative analyse viste tydelige sæsonvariationer og regionale
+forskelle i arbejdsløsheden, især blandt mænd. Med log-transformerede
+data og STL-dekomposition blev det muligt at fremhæve og vurdere trends
+og sæsonkomponenter i de enkelte serier. Beregningen af features og
+deskriptive mål bekræftede høj autokorrelation og gennemgående trends,
+hvilket er væsentligt for valg af modeltype.
+
+Modelvalideringen pegede på ARIMA som den mest præcise model i ni ud af
+ti serier. Krydsvalidering, residualanalyse og Ljung-Box-tests
+indikerede generelt, at modellerne var godt tilpasset og havde
+uafhængige fejlled. En undtagelse blev identificeret for ETS-modellen i
+Region Hovedstaden, hvor residualerne udviste autokorrelation, hvilket
+giver anledning til tvivl om modellens egnethed i denne sammenhæng.
+
+Sammenligningen mellem modellernes forudsigelser og de faktiske
+observationer i 2019 viste overordnet god overensstemmelse. Prognoserne
+for 2020 antyder overvejende stabile niveauer, men med stigende
+usikkerhed i visse mandlige serier, særligt i Region Syddanmark og
+Midtjylland.
+
+Samlet set viser analysen, at klassiske tidsseriemodeller, særligt
+ARIMA, egner sig godt til at beskrive og forudsige arbejdsløsheden i et
+dansk kontekstuelt rum, forudsat at modellerne valideres grundigt og
+vurderes kritisk i forhold til residualstruktur og prognoseegenskaber.
 
 \newpage
 
