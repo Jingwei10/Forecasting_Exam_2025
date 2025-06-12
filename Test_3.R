@@ -7,6 +7,8 @@ pacman::p_load(
 # Indlæs datasættet – gemt som en RDS-fil
 data <- read_rds("data/Airidk_long.rds")
 
+View(data)
+
 # NYT ------------------------------------------------------------------------
 # --- Train / test -----------------------------------------------------------
 train_data <- data |> filter_index(. ~ "2018 Dec")
@@ -52,10 +54,9 @@ train_accuracy <- model_train |>
   accuracy() |> 
   select(kon, region, .model, RMSE_tr = RMSE, MAPE_tr = MAPE)
 
-# … og vælg kun de forecasts der svarer til vinderen pr. serie
 forecast_2019 <- model_train |>
   forecast(h = "12 months") |>
-  inner_join(vinder_cv,                      # matcher på kon, region, .model
+  inner_join(vinder_cv,                      
              by = c("kon", "region", ".model"))
 
 # Endelig test-evaluation (RMSE / MAPE på test_data 2019)

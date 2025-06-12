@@ -1,0 +1,231 @@
+---
+title: "Kode_forecasting"
+format: html
+editor: visual
+---
+
+# Modelvalg
+
+I dette afsnit estimeres og sammenlignes tre klassiske modeltyper, ARIMA, ETS og benchmarkmodellen SNaive, for hver tidsserie (region × køn). Hver modeltype har forskellige antagelser og fordele og kan fange forskellige karakteristika i data, såsom trend, sæson og autokorrelation. Modelvalget foretages automatisk for hver serie via fable-pakken, og resultaterne anvendes i den efterfølgende validering og forecast.
+
+## Valgte modeltyper
+
+**ARIMA (AutoRegressive Integrated Moving Average)**\
+ARIMA-modeller anvendes til at modellere tidsserier med autokorrelation og ikke-stationaritet. De kombinerer autoregressive (AR) led, differens (I) for at opnå stationaritet, og glidende gennemsnit (MA) led til at modellere fejl. Ved at inkludere sæsonkomponenter (SARIMA) kan modellen håndtere årligt gentagende mønstre. ARIMA er særligt velegnet til serier med langsigtede trends og strukturelle skift, hvor tidligere værdier har stor indflydelse på den nuværende tilstand (Hyndman & Athanasopoulos, 2021, kap. 9).
+
+**ETS (Exponential Smoothing State Space Model)**\
+ETS-modeller benytter eksponentiel glatning til at vægte nyere observationer højere og beskriver tidsserier ud fra tre elementer: fejl, trend og sæson. Hver komponent kan være additiv eller multiplicativ afhængigt af dataens karakter. ETS egner sig godt til serier med tydelige strukturer og sæsonrytmer, især når der ikke er behov for at modellere autokorrelation direkte (Hyndman & Athanasopoulos, 2021, kap. 8).
+
+**SNAÏVE (Seasonal Naive)**\
+SNaive er en enkel benchmarkmodel, der baserer hvert forecast på den tilsvarende værdi fra samme sæson i den foregående periode. Modellen fanger sæsonmønstre, men tager ikke højde for trend eller afhængighed i data. Den anvendes til at vurdere, om mere komplekse modeller giver en mærkbart bedre forecast-præcision (Hyndman & Athanasopoulos, 2021, kap. 3 og 8).
+
+## Splitning af datasættet
+
+Vi starter med at splitte datasættet op i et træningssæt og et testsæt. Testsættet er dataen fra hele 2019, som er det sidste år i det samlede datasæt, og træningssættet er alt den forrige data fra 2007-2018.
+
+```{r Datasplit}
+train_data <- data |> filter_index(. ~ "2018 Dec")
+test_data  <- data |> filter_index("2019 Jan" ~ "2019 Dec")
+```
+
+Herunder udføres tidsserie-krydsvalidering udelukkende på træningsdataen med et rullende vindue på 60 måneder. Vi anvender stretch_tsibble() til at generere flere trænings- og test-split, som forskydes én måned ad gangen. Tre modeller evalueres: ARIMA, ETS og en sæsonbetonet naiv model (SNaive) – alle på log-transformerede data.
+
+Forecastfejlene beregnes med accuracy(), og beregningerne køres parallelt for hurtigere eksekvering. Resultaterne gemmes med write_rds() for reproducérbarhed.
+
+```{r CV}
+plan(multisession)
+
+cv_data <- train_data |>
+  stretch_tsibble(.init = 60, .step = 1)
+
+cv_models <- cv_data |>
+  model(
+    ARIMA  = ARIMA(log(svalue)),
+    ETS    = ETS(log(svalue)),
+    SNaive = SNAIVE(log(svalue))
+  )
+
+# write_rds(cv_models, "cv_models.rds")
+
+plan(sequential)
+```
+
+Her identificeres den bedste model for hver kombination af køn og region baseret på laveste RMSE. Ved at gruppere på kon og region og vælge modellen med mindst fejl (slice_min()), får vi én vinder pr. serie uden ligestilling mellem modeller (with_ties = FALSE). Dette gør det muligt senere at bruge den bedste model til forecast for hver delserie.
+
+```{r CV-vindere}
+vinder_cv <- cv_accuracy |>
+  group_by(kon, region) |>
+  slice_min(RMSE, n = 1, with_ties = FALSE) |>
+  ungroup()
+
+vinder_cv |> select(kon, region, .model)
+```
+
+Resultaterne viser, at ARIMA-modellen klarer sig bedst i 9 ud af 10 tidsserier. Den eneste undtagelse er kvinder i Region Hovedstaden, hvor en ETS-model giver lavest RMSE. Dette tyder på, at ARIMA generelt formår at tilpasse sig strukturen i dataserierne bedre, hvilket ofte skyldes modellens fleksibilitet i forhold til både trend og sæson. Den ene ETS-vinder indikerer dog, at i nogle tilfælde kan eksponentiel glatning være mere passende – muligvis pga. mere stabil sæson uden kompleks autokorrelation.
+
+```{r Test}
+model_train <- train_data |>
+  model(
+    ARIMA  = ARIMA(log(svalue)),
+    ETS    = ETS(log(svalue)),
+    SNaive = SNAIVE(log(svalue))
+  )
+
+train_accuracy <- model_train |> 
+  accuracy() |> 
+  select(kon, region, .model, RMSE_tr = RMSE, MAPE_tr = MAPE)
+
+forecast_2019 <- model_train |>
+  forecast(h = "12 months") |>
+  inner_join(vinder_cv,                      
+             by = c("kon", "region", ".model"))
+```
+
+Her gentrænes alle tre modeller på hele træningsperioden fra 2010 til 2018. Derefter laves et 12-måneders forecast for 2019, som svarer til testperioden. Ved at forecaste alle modeller og derefter filtrere til den tidligere udpegede vinder (inner_join() med vinder_cv), sikrer vi, at den bedste model anvendes til hver serie i den endelige evaluering.
+
+Her sammenlignes trænings- og testfejl for hver serie ved at kombinere dem i én tabel (train_vs_test). Dette giver overblik over, hvorvidt modellerne generaliserer godt — altså om performance på testdata svarer til performance på træningsdata.
+
+```{r}
+test_accuracy <- forecast_2019 |>
+  accuracy(test_data) |>
+  select(kon, region, .model, RMSE, MAPE)
+
+train_vs_test <- left_join(train_accuracy, test_accuracy,
+                           by = c("kon", "region", ".model"))
+
+train_vs_test <- train_vs_test |> 
+  filter(!is.na(RMSE)) |>
+  relocate(RMSE, .after = RMSE_tr)
+
+train_vs_test
+```
+
+Sammenligningen af trænings- og testfejl viser, at modellerne generelt præsterer fornuftigt, men med variation. I flere serier er fejlene på testdata lavere end på træningsdata (f.eks. mænd i Region Midtjylland og Nordjylland). Omvendt ser vi enkelte serier med markant højere testfejl (f.eks. mænd i Region Hovedstaden og Syddanmark), hvilket kan indikere overfitting eller uforudsete udsving i 2019.
+
+Der er herunder udvalgt 3 tidsserier med forskellige situationer ift. forskellen på trænings- og testscore, som der er blevet dykket længere ned i med gg_tsresiduals.
+
+```{r}
+model_train |>
+  filter(kon == "Mænd", region == "Region Syddanmark") |>
+  select(all_of(vinder_model)) |> 
+  gg_tsresiduals()
+```
+
+Der er kigget nærmere på tidsserien for mænd i region Syddanmark, da den har relativt høj test-RMSE ift. de andre og høj forskel på trænings- og testscore.
+
+Residualerne ser ud til at være nogenlunde centreret omkring nul, men der er enkelte ekstreme udsving (outliers), særligt i 2009 og 2016.
+
+ACF-plottet viser, at der ikke er signifikant autokorrelation i residualerne — alle ligger inden for konfidensgrænserne. Det er et tegn på, at modellen har fanget den systematiske struktur i data. Histogrammet indikerer en rimelig symmetrisk fordeling, men med lidt tungere haler end en ideel normalfordeling.
+
+Samlet set tyder residualanalysen på, at modellen er acceptabel, men de ekstreme observationer og den relativt høje forecastfejl på testdata (RMSE = 0.085) antyder, at modellen kan være følsom over for enkelte udsving.
+
+```{r}
+model_train |>
+  filter(kon == "Mænd", region == "Region Midtjylland") |>
+  select(all_of(vinder_model)) |> 
+  gg_tsresiduals()
+```
+
+Der er kigget nærmere på tidsserien for mænd i region Midtjylland, da den har lav test-RMSE ift. trænings-RMSE.
+
+Modellen ser ud til at have fanget strukturen i data rimeligt godt. Residualerne er generelt centreret omkring nul, men enkelte større afvigelser ses tidligt i serien.
+
+ACF-plottet viser svag autokorrelation ved nogle højere lags, men ingen værdier ligger tydeligt uden for konfidensgrænserne. Histogrammet viser en nogenlunde symmetrisk fordeling med lette afvigelser fra normalitet.
+
+Samlet set er der ikke tegn på systematiske fejl i residualerne. Det stemmer godt overens med den relativt lave RMSE på testdata (RMSE = 0.019) sammenlignet med en højere træningsfejl (RMSE = 0.050), hvilket tyder på, at modellen generaliserer bedre end forventet.
+
+```{r}
+model_train |>
+  filter(kon == "Kvinder", region == "Region Nordjylland") |>
+  select(all_of(vinder_model)) |> 
+  gg_tsresiduals()
+```
+
+Til sidst er der kigget nærmere på tidsserien for kvinder i region Nordjylland, da den har lav test-RMSE og lav trænings-RMSE.
+
+Residualerne er pænt centreret omkring nul og uden tydelige mønstre over tid. Der ses enkelte udsving, men ingen systematiske afvigelser.
+
+ACF-plottet viser lidt autokorrelation ved lag 17, men det virker rimelig tilfældigt og ellers ligger værdierne inden for konfidensgrænserne, hvilket tyder på, at modellen har fanget den væsentlige struktur i data. Histogrammet viser en forholsvist symmetrisk fordeling af residualerne.
+
+Samlet set understøtter residualanalysen, at modellen er velfungerende for denne serie. Det stemmer overens med en lav forecastfejl på testdata (RMSE = 0.012) og indikerer, at modellen generaliserer stabilt.
+
+```{r}
+ljung_box_results <- model_train |> 
+  augment() |>
+  features(.innov, ljung_box, lag = 24, dof = 3)
+
+ljung_box_vindere <- ljung_box_results |>
+  inner_join(vinder_cv, by = c("kon", "region", ".model")) |> 
+  select(1:5)
+```
+
+For hver vinder-model er der udført en Ljung-Box test med 24 lags og 3 frihedsgrader for at vurdere, om residualerne er serielt uafhængige.
+
+Resultaterne viser, at 9 ud af 10 modeller har høje p-værdier, hvilket betyder, at vi ikke forkaster nulhypotesen om uafhængige residualer. Det tyder på, at modellerne har fanget den væsentlige struktur i data.
+
+Dog er der en klar undtagelse: ETS-modellen for kvinder i Region Hovedstaden har en meget lav p-værdi, hvilket tyder på signifikant autokorrelation i residualerne. Det skaber tvivl om modellens gyldighed her og kunne indikere, at ARIMA muligvis havde været et bedre valg for denne serie.
+
+Samlet set tyder resultaterne på, at residualerne fra de fleste modeller kan betragtes som hvid støj, hvilket er et centralt krav i vurderingen af en god tidsseriemodel.
+
+```{r}
+forecast_vs_actual <- forecast_2019 |>
+  left_join(
+    test_data |> select(kon, region, yearmonth, actual = svalue),
+    by = c("kon", "region", "yearmonth")
+  )
+
+forecast_vs_actual |>
+  ggplot(aes(x = yearmonth)) +
+  geom_line(aes(y = actual), color = "black", size = 0.9, linetype = "solid") +
+  geom_line(aes(y = .mean), color = "blue", size = 0.9, linetype = "dashed") +
+  facet_grid(region ~ kon, scales = "free_y") +
+  labs(
+    title = "Forecast vs. Faktiske værdier – 2019",
+    y = "Arbejdsløse pr. 10.000 personer",
+    x = "Tid",
+    caption = "Sort = Faktisk | Blå = Forecast"
+  ) +
+  theme_minimal(base_size = 13)
+```
+
+Plottet viser en sammenligning mellem de faktiske observationer (sort) og modellernes punktprognoser (blå) for 2019, opdelt på køn og region. Generelt følger prognoserne udviklingen i de faktiske data tæt, hvilket bekræfter, at modellerne har god forudsigelsesevne.
+
+Særligt for mænd i Region Midtjylland og Nordjylland er der meget tæt overensstemmelse. Derimod ses systematiske afvigelser for mænd i Region Syddanmark og kvinder i Region Hovedstaden, hvor modellerne undervurderer eller overvurderer udviklingen. Det stemmer overens med de højere RMSE-værdier og residualanalyser for disse serier.
+
+```{r}
+data_train_final <- data
+
+models_final <- data_train_final |> 
+  model(
+    ARIMA  = ARIMA(log(svalue)),
+    ETS    = ETS(log(svalue)),
+    SNaive = SNAIVE(log(svalue))
+  )
+
+forecast_2020 <- models_final |> 
+  forecast(h = "12 months") |> 
+  inner_join(vinder_cv, by = c("kon", "region", ".model"))
+
+forecast_2020 |> 
+  autoplot(level = c(80, 95)) +
+  facet_grid(region ~ kon, scales = "free_y") +
+  labs(
+    title = "Forecast for 2020 – bedste model pr. serie",
+    subtitle = "Med 80% og 95% prædiktionsintervaller",
+    y = "Arbejdsløse pr. 10.000 personer",
+    x = "Tid"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    plot.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold")
+  )
+```
+
+Plottet viser 12 måneders fremskrivning for 2020 baseret på den bedste model pr. serie, suppleret med 80% og 95% prædiktionsintervaller. For de fleste serier anvendes ARIMA (rød), mens ETS (turkis) kun bruges for kvinder i Region Hovedstaden.
+
+De fleste forecasts viser relativt stabile niveauer i arbejdsløsheden, men for flere mandlige serier (især Region Syddanmark og Midtjylland) ses en tydelig stigning og stigende usikkerhed hen over året – hvilket afspejles i de bredere konfidensbånd.
+
+Visualiseringen illustrerer både det forventede niveau og usikkerheden i prognoserne, og den bekræfter, at modellerne er i stand til at fange forskelle mellem regioner og køn.
