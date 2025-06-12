@@ -42,7 +42,7 @@ pacman::p_load(tidyverse, gghighlight, hrbrthemes, tsibble, lubridate,
 \fcolorbox{gray}{white}{
 \parbox{0.8\textwidth}{
 \centering
-\textbf{Antal tegn (inkl. mellemrum): 97023}
+\textbf{Antal tegn (inkl. mellemrum): 32.000}
 }}
 \end{center}
 \begin{center}
@@ -54,15 +54,8 @@ Bjarne Taulo Sørensen \\
 
 \tableofcontents
 
-# Tabel over figurer {.unnumbered}
-
-\thispagestyle{empty}
-
-\newpage
-
 \pagenumbering{arabic}
 \setcounter{page}{1}
-\tableofcontents
 \newpage
 
 # Introduktion
@@ -87,7 +80,7 @@ For at besvare dette spørgsmål undersøges følgende delspørgsmål:
 
 ## Afgrænsning
 
-Analysen bygger udelukkende på de udleverede arbejdsløshedsdata for perioden januar 2007 til december 2019 og inddrager ikke eksterne forklarende faktorer som COVID-19, konjunkturudsving eller politiske tiltag. Formålet er ikke at forklare årsager til ledighed, men at undersøge, hvordan klassiske forecasting-modeller kan anvendes metodisk og reproducerbart. Fokus ligger på statistisk modellering og sammenligning af modelpræcision – ikke på strategiske eller politiske anbefalinger.
+Analysen baserer sig udelukkende på de udleverede arbejdsløshedstal for perioden januar 2007 til december 2019 og anvender ingen eksterne forklaringsvariable såsom COVID-19, økonomiske indikatorer eller politiske reformer. Dette valg er truffet for at isolere og vurdere forecasting-modellernes metodiske egenskaber. Fokus er dermed på reproducerbar, statistisk modellering – ikke på årsagsforklaring eller samfundsøkonomisk fortolkning.
 
 ### Anvendelse af AI-værktøj
 
@@ -101,14 +94,13 @@ Nedenfor er en oversigt over centrale begreber og forkortelser, som anvendes i o
 -   **ETS**: Exponential Smoothing State Space Model
 -   **SNAÏVE**: Seasonal Naive
 -   **RMSE**: Root Mean Squared Error
--   **MAPE**: Mean Absolute Percentage Error 
--   **STL**: Seasonal-Trend decomposition using Loess 
+-   **MAPE**: Mean Absolute Percentage Error
+-   **STL**: Seasonal-Trend decomposition using Loess
 -   **CV**: Cross-validation
 
 ## Struktur
 
-Opgaven er opbygget i fem hovedfaser, som følger en klassisk tilgang til analyse af tidsserier.
-Analysen er opdelt i fem overordnede faser. Først gennemføres en eksplorativ dataanalyse, hvor arbejdsløsheden undersøges for tendenser, sæsonmønstre og forskelle mellem køn og region. Derefter estimeres tre modeller – ARIMA, ETS og Seasonal Naive – for hver tidsserie. I tredje fase valideres modellerne med krydsvalidering og residualanalyse, og deres præcision vurderes. På den baggrund fremskrives arbejdsløsheden for 2020. Til sidst sammenlignes resultaterne, og der konkluderes på tværs af modeller, regioner og køn.
+Opgavens struktur følger en klassisk tilgang til tidsserieanalyse og er inddelt i fem faser. Først gennemføres en eksplorativ dataanalyse med fokus på mønstre og variationer i arbejdsløsheden fordelt på region og køn. Dernæst estimeres tre modeller (ARIMA, ETS og Seasonal Naive) for hver tidsserie. I tredje fase valideres modellerne gennem krydsvalidering og residualanalyse. Herefter foretages fremskrivninger for 2020, og til sidst sammenlignes og konkluderes der på tværs af modeller og dataserier.
 
 # Data og forberedelse
 
@@ -128,7 +120,7 @@ head(data)
 
 # Eksplorativ dataanalyse (EDA)
 
-Formålet med dette afsnit er at skabe et overblik over datasættets struktur forud for modelleringen. Ved hjælp af visualiseringer, deskriptive statistikker og STL-dekomposition undersøges arbejdsløshedens udvikling på tværs af regioner og køn i perioden 2007–2019. Analysen afdækker overordnede tendenser, sæsonmønstre og forskelle i niveau og variation. For at sikre god modellering vurderes behovet for datatransformation, og tidsserierne dekomponeres i trend, sæson og residualer. Resultaterne danner det metodiske fundament for det videre modelarbejde.
+Formålet med dette afsnit er at skabe et overblik over datasættets struktur forud for modelleringen. Ved hjælp af visualiseringer, deskriptive statistikker og STL-dekomposition undersøges arbejdsløshedens udvikling på tværs af regioner og køn i perioden 2007 til 2019. Analysen afdækker overordnede tendenser, sæsonmønstre og forskelle i niveau og variation. Resultaterne danner det metodiske fundament for det videre modelarbejde.
 
 ## Visualisering af udvikling og mønstre
 
@@ -136,59 +128,33 @@ I dette afsnit undersøges, hvordan arbejdsløsheden har udviklet sig over tid �
 
 ### Udvikling over tid
 
-I de følgende figurer undersøges udviklingen i arbejdsløsheden over tid. Til at begynde med anvendes den oprindelige skala for at give et lettilgængeligt overblik (Figur 1 og 2). Fra Figur 3 og frem benyttes en log-transformation for at stabilisere variationen i serierne, især blandt mænd, og for at sikre sammenlignelighed i videre modellering og forecast.
+I de følgende figurer undersøges udviklingen i arbejdsløsheden over tid. Til at begynde med anvendes den oprindelige skala for at give et lettilgængeligt overblik (Figur 1). Fra Figur 2 og frem benyttes en log-transformation for at stabilisere variationen i serierne, især blandt mænd, og for at sikre sammenlignelighed i videre modellering og forecast.
 
-**Figur 1: Udvikling i kvinders arbejdsløshed pr. region**
-
-```{r}
+```{r figur 1}
 #| echo: false
 #| warning: false
 #| message: false
 
-# Figur 1
-
 data |> 
-  filter(kon == "Kvinder") |> 
-  autoplot(svalue) +
-  labs(x = "Tid", y = "Arbejdsløse pr. 10.000 personer"
-  ) +
-  theme(legend.title = element_blank())
-```
-
-Ovenstående figur viser den månedlige arbejdsløshed blandt kvinder i de fem danske regioner fra 2007 til 2019. Der fremgår et tydeligt sæsonmønster med højere ledighed i vintermånederne og lavere i sommerperioden. Niveauet varierer regionalt, hvor Region Hovedstaden typisk ligger højest og Nordjylland lavest. Samlet ses en faldende tendens efter finanskrisen.
-
-**Figur 2: Udvikling i mænds arbejdsløshed pr. region**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Figur 2
-
-data |> 
-  filter(kon == "Mænd") |> 
-  autoplot(svalue) +
+  ggplot(aes(x = yearmonth, y = svalue, colour = region)) +
+  geom_line() +
+  facet_wrap(~ kon) +
   labs(
+    y = "Arbejdsløse pr. 10.000 personer",
     x = "Tid",
-    y = "Arbejdsløse pr. 10.000 personer"
+    title = "Figur 1: Udvikling i arbejdsløsheden, fordelt på region og køn"
   ) +
-  theme(
-    legend.title = element_blank()
-  )
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.title = element_blank())
 
 ```
 
-Sammenlignet med kvinder ses større udsving og et generelt højere niveau i mænds arbejdsløshed. Sæsonmønstrene er mere markante, og variationen mellem regionerne er tydeligere – især i Region Syddanmark og Midtjylland, hvor krisen i 2008-2009 medfører et kraftigt midlertidigt løft i ledigheden.
+Ovenstående figur viser den månedlige arbejdsløshed blandt mænd og kvinder i de fem danske regioner fra 2007 til 2019. Der fremgår et tydeligt sæsonmønster med højere ledighed i vintermånederne og lavere i sommerperioden. Niveauet varierer regionalt, hvor Region Hovedstaden typisk ligger højest og Nordjylland lavest. Samlet ses en faldende tendens efter finanskrisen.
 
-**Figur 3: Sammenligning af original og log-skala**
-
-```{r}
+```{r figur 2}
 #| echo: false
 #| warning: false
 #| message: false
-
-# Figur 3
 
 data_long <- data |> 
   mutate(
@@ -211,28 +177,26 @@ ggplot(data_long, aes(x = yearmonth, y = value, color = kon, linetype = type)) +
     labels = c("original" = "Original skala", "log_value" = "Log-skala")
   ) +
   labs(
-    x = "Tid", y = "Værdi (arbejdsløse pr. 10.000)",
-    color = "Køn",
-    linetype = "Skala"
+  title = "Figur 2: Sammenligning af original og log-skala",
+  x = "Tid", 
+  y = "Værdi (arbejdsløse pr. 10.000)",
+  color = "Køn",
+  linetype = "Skala"
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold"),
-    strip.text = element_text(face = "bold")
+    legend.position = "bottom"
   )
 
 ```
 
-Figur 3 sammenligner arbejdsløsheden for mænd og kvinder i de fem regioner – vist både på original og log-transformeret skala. De stiplede linjer angiver de oprindelige værdier, mens de fuldt optrukne viser log-skalaen. Log-transformeringen udjævner forskelle og gør det lettere at sammenligne udviklingen, især i serier med store udsving. Den log-skalerede version anvendes derfor i den videre analyse.
+Figur 2 viser, hvordan log-transformeringen dæmper udsvingene, særligt i serier med højt niveau og stor variation, som det ses blandt mænd. Denne transformation gør det lettere at sammenligne udviklingen på tværs af regioner og køn og sikrer en mere stabil varians i det videre analysearbejde. Derfor anvendes den log-transformerede version fremadrettet i analysen.
 
 ### Sæsonmønstre
 
 Med log-transformerede data som fundament undersøges nu sæsonmønstrene i arbejdsløsheden nærmere. Gennem sæsonplots og subserieplots vurderes, hvordan arbejdsløsheden typisk varierer over året – og hvordan dette adskiller sig mellem mænd og kvinder samt på tværs af regioner.
 
-**Figur 4: Sæsonmønster for mænd pr. region**
-
-```{r}
+```{r figur 3}
 #| echo: false
 #| warning: false
 #| message: false
@@ -240,70 +204,50 @@ Med log-transformerede data som fundament undersøges nu sæsonmønstrene i arbe
 # Figur 4: Sæsonmønster for mænd pr. region
 
 data |> 
-  filter(kon == "Mænd") |> 
   gg_season(log(svalue)) +
+  facet_grid(kon ~ region) +
   labs(
     x = "Måned",
-    y = "Log(Arbejdsløshed)"
-  )
+    y = "Log(Arbejdsløshed)",
+    title = "Figur 3: Sæsonmønstre i arbejdsløsheden pr. region og køn"
+  ) +
+  theme_minimal()
+
 ```
 
-Figur 4 viser sæsonmønstre i mænds arbejdsløshed fordelt på regioner. Hver farvet linje repræsenterer et år, og linjernes forløb illustrerer, hvordan arbejdsløsheden typisk er højest i årets begyndelse (januar–marts) og lavest i sommermånederne (juni–august). Mønstret er stabilt på tværs af år og regioner, hvilket tyder på en tydelig sæsonkomponent. Niveauet er højest i Region Hovedstaden, mens Sjælland og Nordjylland ligger lavere.
+Figur 3 viser sæsonmønstre i arbejdsløsheden pr. region og køn (log-transformeret). Hver farve repræsenterer et år, og linjerne viser en tydelig sæsonrytme med høj ledighed i årets begyndelse og lav i sommermånederne. Mænd udviser generelt større sæsonudsving end kvinder. Niveauet er højest i Region Hovedstaden og lavest i Nordjylland og Sjælland. Negative log-værdier forekommer, hvor arbejdsløsheden ligger under 1 pr. 10.000.
 
-**Figur 5: Sæsonmønster for kvinder pr. region**
-
-```{r}
+```{r figur 4}
 #| echo: false
 #| warning: false
 #| message: false
-
-# Figur 5
-
-data |> 
-  filter(kon == "Kvinder") |> 
-  gg_season(log(svalue)) +
-  labs(
-    x = "Måned",
-    y = "Log(Arbejdsløshed)"
-  )
-```
-
-Sammenlignet med mænd er sæsonudsvingene blandt kvinder mindre udtalte, og udviklingen fremstår mere jævn og stabil på tværs af årene. Niveauforskellene mellem regionerne er bevaret, men udsvingene over måneder er mere afdæmpede. Det indikerer en lavere volatilitet i kvinders arbejdsløshed og en mere ensartet sæsonprofil.
-
-**Figur 6: Subserieplot for mænd pr. måned og region**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Figur 6
 
 data |> 
   filter(kon == "Mænd") |> 
   gg_subseries(log(svalue)) +
   labs(
     x = "Måned",
-    y = "Log(Arbejdsløshed)"
+    y = "Arbejdsløshed",
+    title = "Figur 4: Subserieplot for mænd pr. måned og region"
   )
+
 ```
 
-Figur 6 viser udviklingen i mænds arbejdsløshed fordelt på måneder og regioner, hvor hver facetteret celle repræsenterer en måned. Den sorte linje viser udviklingen over tid, mens den blå streg repræsenterer gennemsnittet. Det ses, at arbejdsløsheden konsekvent topper i årets første måneder og falder hen over sommeren. Desuden er udsvingene mellem år særligt store i vinterhalvåret, hvilket understreger en høj sæsonafhængighed og volatilitet i mænds ledighedsniveau. Mønstret er gennemgående i alle regioner, om end niveauet varierer.
+Figur 4 viser subserieplottet for arbejdsløshedens udvikling for mænd pr. måned og region. Hver celle viser forløbet for en specifik måned over årene, med sorte linjer for de enkelte år og blå linjer for gennemsnit. Ledigheden topper typisk i årets første måneder og falder hen over sommeren. Mænd udviser generelt større sæsonudsving og højere variation mellem år, især i vinterhalvåret.
 
-**Figur 7: Subserieplot for kvinder pr. måned og region**
-
-```{r}
+```{r figur 5}
 #| echo: false
 #| warning: false
 #| message: false
 
-# Figur 7
+
 data |> 
   filter(kon == "Kvinder") |> 
   gg_subseries(log(svalue)) +
   labs(
     x = "Måned",
-    y = "Arbejdsløshed"
+    y = "Arbejdsløshed",
+    title = "Figur 5: Subserieplot for kvinder pr. måned og region"
   )
 ```
 
@@ -311,128 +255,11 @@ Sammenlignet med mænd viser kvinder tilsvarende sæsonmønstre med højere ledi
 
 Udover sæsonmæssige udsving varierer arbejdsløsheden betydeligt på tværs af både geografi og køn. Dette undersøges nærmere i de følgende visualiseringer.
 
-### Regionale og kønsmæssige forskelle
-
-I dette afsnit rettes fokus mod samspillet mellem køn og region. Der undersøges, hvordan forskelle i arbejdsløshedsniveau og -mønstre varierer både mellem regioner og mellem mænd og kvinder. Visualiseringerne præsenteres i forskellige facetteringer for at fremhæve de vigtigste forskelle.
-
-**Figur 8: Arbejdsløshed fordelt på regioner – opdelt efter køn (log-skala)**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Figur 8
-
-data |> 
-  autoplot(log(svalue))  +
-  aes(colour = region) +
-  facet_wrap(~ kon) +
-  labs(
-    y = "Log(Arbejdsløse pr. 10.000 personer)", x = "Tid"
-  ) +
-  theme(legend.position = "bottom", legend.title = element_blank())
-
-```
-
-Figur 8 viser den log-transformerede udvikling i arbejdsløsheden blandt mænd og kvinder, fordelt på regioner. Hver farve repræsenterer en region, og mænd og kvinder vises i hver sin fane, så det er lettere at sammenligne på tværs. Log-skalaen gør forskellene mellem regionerne mere overskuelige og dæmper de største udsving. Niveauet er stadig højest i Region Hovedstaden og lavest i Nordjylland. Der er tydelige sæsonbevægelser, særligt blandt mænd, hvor udsvingene fortsat er størst. For kvinder fremstår udviklingen mere jævn.
-
-**Figur 9: Arbejdsløshed fordelt på køn – opdelt efter region (log-skala)**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Figur 9
-
-data |> 
-  autoplot(log(svalue)) +
-  aes(colour = kon, group = kon) +
-  facet_wrap(~ region, scales = "free_y") +
-  labs(
-    y = "Log(Arbejdsløse pr. 10.000 personer)", x = "Tid",
-    colour = "Køn"
-  ) +
-  scale_colour_manual(
-    values = c("Mænd" = "steelblue", "Kvinder" = "hotpink")
-  ) +
-  theme(legend.position = "bottom", legend.title = element_blank())
-```
-
-Hvor Figur 8 sammenlignede regioner inden for hvert køn, viser Figur 9 forskellene mellem kønnene i hver af de fem regioner. Mænd har generelt højere arbejdsløshed og større udsving end kvinder – især under og efter finanskrisen. Disse forskelle er forholdsvis stabile på tværs af regioner og bekræfter, at mænds ledighed både topper højere og varierer mere over tid. Kvindernes ledighed er lavere og mere jævnt fordelt. Figuren understøtter dermed behovet for at analysere hver tidsserie for sig. I det følgende suppleres med deskriptive statistikker, der opsummerer forskelle i niveau og variation.
-
-<!-- ### 1. Årlig sæsonrytme -->
-
-<!-- **Hvad ser vi?**\ -->
-
-<!-- Hver kurve går op om vinteren og ned om sommeren. -->
-
-<!-- **Forestilling:** Tænk på et legetøjsfirma, der sender ekstra vikarer hjem i sommerferien – arbejdsløsheden falder, fordi der er flere sæsonansatte. Omvendt i vintermånederne, når der er færre byggeprojekter og udenlandsk turisme, stiger ledigheden. -->
-
-<!-- -   **Eksempel:** I Region Midtjylland ser vi i januar cirka 2,2 ledige pr. 10 000, men i juli falder det til under 1,0. Det gentager sig hvert år. -->
-
-<!-- ### 2. Mænd versus kvinder (kønsgabet) -->
-
-<!-- **Hvad ser vi?\ -->
-
-<!-- **Blå linjer (mænd) ligger næsten altid et lille nøk over pink (kvinder), og deres udsving er større. -->
-
-<!-- **Forestilling:** Mænd har ofte flere midlertidige “svingdørs-ansættelser” (tænk vikar i byggebranchen), så når økonomien hænger i bremsen, bliver de fyret først – og når det går fremad, kommer de også lidt hurtigere tilbage i job, hvilket giver større “bumps” i kurven. -->
-
-<!-- -   **Eksempel:** I 2010 ser vi en top på omkring 3,1 for mænd i Hovedstaden, mens kvinder når knap 2,6 – altså et klart løft for mænd. -->
-
-<!-- ### 3. Finanskrise-effekten (2008–2012) -->
-
-<!-- **Hvad ser vi?**\ -->
-
-<!-- En kraftig pendlende stigning i alle regioner omkring 2009–2012. Efter 2013 begynder alle linjer at falde i roligt tempo. -->
-
-<!-- **Forestilling:** Forestil dig en rutchebane: Først går kurven brat op (krise), så ned (genopretning), men alle “sidder i samme tog”, bare med forskellig højde på stigningen. -->
-
-<!-- -   **Eksempel:** Region Syddanmark går fra et lavpunkt på \~0,8 (før krisen) op til 2,3, og falder derefter jævnt til omkring 1,0 i 2019. -->
-
-<!-- ### 4. Regionale forskelle i niveau -->
-
-<!-- **Hvad ser vi?**\ -->
-
-<!-- Nogle regioner ligger højt, andre lavt: -->
-
-<!-- -   **Hovedstaden** topper højest (\~3,2 i krise). -->
-
-<!-- -   **Nordjylland** ligger lavest (under 1,3 som højeste i krise). -->
-
-<!-- **Forestilling:** Tænk på by versus land: I storbyen (Hovedstaden) er konkurrencen om job større, og flere brancher rammes hårdt i krisetider, mens små samfund i Nordjylland ofte har mere stabile, lokale arbejdspladser. -->
-
-<!-- -   **Eksempel:** I Nordjylland når mænds ledighed i krisen kun op på \~1,3, mod 3,1 i Hovedstaden. -->
-
-<!-- ### 5. Volatilitet (støj i dataen) -->
-
-<!-- **Hvad ser vi?**\ -->
-
-<!-- Mænds kurver “hopper” mere fra måned til måned end kvinders. Kvindernes kurver er glattere. -->
-
-<!-- **Forestilling:** Forestil dig to venner, der spiller på aktiemarkedet: Manden tager nogle hurtige køb og salg (“day trading”), mens kvinden køber for at holde længe (“investering”). Førstnævnte giver store udsving, sidstnævnte en mere stabil udvikling. -->
-
-<!-- -   **Eksempel:** Mænd i Region Sjælland har store bump vinter/sommer, mens kvinders ledighed svæver mere jævnt. -->
-
-<!-- ## Hvad betyder det for modellerne? -->
-
-<!-- 1.  **Altid med sæson**\ -->
-
-<!--     – Vælg en model, der kan håndtere den årlige op-og-ned-bevægelse, fx SARIMA eller ETS med sæson. -->
-
-<!-- 2.  **Individuel tilpasning**\ -->
-
-<!--     – Fordi hver region og hvert køn har forskellig “højde” og “bumps”, lader vi fable finde den helt rette model for **hver** af de 10 serier. Det sikrer, at modellen fanger lige netop de mønstre og støjniveauer, der gælder for den serie. -->
-
-<!-- 3.  **Trendændring efter 2013**\ -->
-
-<!--     – Vær opmærksom på, at der er en tydelig knæk omkring 2013. Overvej modeller (eller STL-dekomponering), som kan håndtere en let ændret trend dér. -->
+For at underbygge disse visuelle indsigter med konkrete tal, præsenteres i næste afsnit deskriptive statistikker. De giver en numerisk opsummering af centrale mål som gennemsnit, variation og ekstreme værdier og bidrager til at identificere særligt stabile eller volatile grupper, der kan kræve særlig opmærksomhed i den videre analyse.
 
 ## Deskriptive statistikker
 
-De deskriptive statistikker, herunder gennemsnit, spredning, minimum og maksimum, supplerer graferne ved at opsummere niveau og variation i arbejdsløsheden på tværs af regioner og køn. De giver et hurtigt overblik over forskellene og hjælper med at udpege serier med stor variation, som kan kræve særlig opmærksomhed i den videre modellering (Hyndman og Athanasopoulos, 2021).
+De foregående visualiseringer viste klare forskelle i arbejdsløshedens niveau, variation og sæsonmønstre på tværs af regioner og køn (Figur 1–5). For at supplere disse observationer med en kvantitativ opsummering præsenteres i Tabel 1 centrale deskriptive mål: gennemsnit, standardafvigelse, minimum og maksimum. Tabellen giver et hurtigt overblik over niveau og variation og fremhæver for eksempel Nordjylland som en stabil region, særligt blandt kvinder, mens andre kombinationer viser højere udsving.
 
 ```{r tabel 1}
 #| echo: false
@@ -459,17 +286,62 @@ deskriptiv |>
 
 ```
 
-Tabel 1 opsummerer arbejdsløsheden fordelt på regioner og køn. Gennemsnittet viser niveauet, mens standardafvigelsen afspejler variation over tid. Der ses markante forskelle mellem både regioner og køn, hvor særligt enkelte kombinationer skiller sig ud med høj variation. Nordjylland fremstår som den mest stabile region, især blandt kvinder. Minimum og maksimum bekræfter billedet og giver indikationer for den videre modellering.
+### Features
+
+Selvom deskriptive statistikker giver et første indtryk af variation og niveau, indfanger de ikke strukturelle træk som trend, sæsonmønstre og stationaritet. For at kvantificere disse egenskaber beregnes en række såkaldte features ved hjælp af ved hjælp af funktionen features() fra feasts-pakken (Hyndman & Athanasopoulos, 2021, kap. 4).
+
+Tabel 2 præsenterer udvalgte mål, der beskriver centrale træk ved serierne og uddyber de visuelle indsigter fra Figur 1–5. Den bagvedliggende kode, herunder brugen af features()-funktionen og indlæsning af dataobjektet feature_table.rds, er dokumenteret i Bilag X.
+
+```{r tabel 2}
+#| echo: false
+#| warning: false
+#| message: false
+
+features_all <- readRDS("data/feature_table.rds")
+
+# Udvælg relevante kolonner
+features_all_selected <- features_all |>
+  select(kon, region,
+         acf1, seasonal_strength_year,
+         var_tiled_mean, shift_level_max,
+         ndiffs, trend_strength)
+# Styling
+features_all_selected  |> 
+  kable(format = "markdown", digits = 2, caption = "Deskriptiv statistik per region og køn") |> 
+  kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover")) |> 
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
+
+```
+
+De kvantitative mål i Tabel 2 supplerer og styrker tolkningerne fra Figur 1 til 5. I det følgende fremhæves de mest centrale mønstre med fokus på fem analytiske temaer: autokorrelation, sæsonmønstre, variation og skift, stationaritet og trend.
+
+**Autokorrelation**
+
+Variablen acf1 måler korttidsafhængighed, det vil sige, hvor stærkt observationer i serien er knyttet til deres nære fortid. Værdierne ligger generelt højt (typisk mellem 0,96 og 0,98), hvilket indikerer en glidende udvikling uden pludselige udsving. Dette stemmer overens med de jævne bevægelser og stabile tendenser, som blev observeret i Figur 1 og Figur 2.
+
+**Sæsonmønstre**
+
+Styrken af årlige sæsonmønstre, målt med seasonal_strength_year, varierer på tværs af grupper. Mænd udviser generelt mere udtalte sæsonudsving end kvinder. For eksempel har mænd i Nordjylland og Sjælland værdier på henholdsvis 0,91 og 0,92. Det svarer til de tydelige sæsonrytmer vist i Figur 3, Figur 4 og Figur 5. I modsætning hertil har kvinder i Region Hovedstaden en lavere værdi på 0,65, hvilket indikerer en mere stabil sæsonprofil.
+
+**Variation og skift**
+
+Målet var_tiled_mean afspejler graden af variation inden for afgrænsede perioder. Kvinder i Nordjylland har den laveste værdi (0,73), hvilket viser en forholdsvis stabil udvikling over tid. Dette understøttes af de glatte kurver i Figur 5. Variablen shift_level_max måler derimod pludselige niveauskift. Mænd i Midtjylland udviser den højeste værdi (1,05), hvilket sandsynligvis relaterer sig til reaktioner på finanskrisen og kan ses i de kraftige fald i arbejdsløsheden i Figur 1 og Figur 2.
+
+**Stationaritet**
+
+Antallet af nødvendige differensieringer (ndiffs) angiver, hvorvidt en serie er stationær. De fleste serier kræver én differens, men enkelte, herunder kvinder i Nordjylland og mænd i både Midtjylland og Nordjylland, har værdi 0. Dette indikerer, at de allerede er stationære uden transformation, hvilket også kommer til udtryk i deres stabile forløb i Figur 3 og Figur 5.
+
+**Trend**
+
+Variablen trend_strength måler graden af trendstruktur i serien. Værdierne ligger generelt meget højt (typisk 0,97 til 0,99), hvilket bekræfter tydelige underliggende tendenser i arbejdsløsheden. Det gælder især Region Hovedstaden, hvor niveauet er højt, og udviklingen over tid er markant, som det fremgår af Figur 1 og Figur 2.
+
+Samlet set bidrager funktionerne i Tabel 2 til at kvantificere og validere de mønstre, der tidligere blev identificeret visuelt. Autokorrelation, sæsonvariation og trendstruktur fremstår som gennemgående karakteristika i alle serier, men med klare forskelle mellem køn og regioner. Resultaterne danner et vigtigt grundlag for valg af modeller og videre analyse.
 
 ## STL-dekomposition
 
-STL-dekomposition anvendes for at undersøge de strukturelle komponenter i arbejdsløshedsserierne. Metoden opdeler tidsserierne i tre dele: trend, sæson og remainder, hvilket giver indblik i, hvor stor en del af variationen der skyldes henholdsvis langsigtet udvikling, tilbagevendende mønstre eller kortsigtede udsving (Hyndman og Athanasopoulos, 2021).
-Dekompositionen er udført separat for mænd og kvinder i hver region, og resultaterne vises i figur 10 og 11.
+STL-dekomposition anvendes for at undersøge de strukturelle komponenter i arbejdsløshedsserierne. Metoden opdeler tidsserierne i tre dele: trend, sæson og remainder, hvilket giver indblik i, hvor stor en del af variationen der skyldes henholdsvis langsigtet udvikling, tilbagevendende mønstre eller kortsigtede udsving (Hyndman og Athanasopoulos, 2021). Dekompositionen er udført separat for mænd og kvinder i hver region, og resultaterne vises i figur 6 og 7.
 
-
-**Figur 10: STL-dekomposition for kvinder – log-transformeret arbejdsløshed pr. region**
-
-```{r}
+```{r figur 6}
 #| echo: false
 #| warning: false
 #| message: false
@@ -484,22 +356,18 @@ kvinder_STL |>
   components() |> 
   autoplot() +
   labs(
-    title = "Log-transformeret arbejdsløshed pr. region",
+    title = "Figur 6: STL-dekomposition for kvinder – log-transformeret arbejdsløshed pr. region",
     x = "Tid",
     y = "Log(arbejdsløshed)"
   )
 ```
 
-Figur 10 viser STL-dekompositionen for kvinder i de fem danske regioner. Der ses tydelige sæsonmønstre med tilbagevendende lavpunkter i sommermånederne og højere ledighed i vinterhalvåret. Trends varierer mellem regionerne: Region Hovedstaden udviser generelt højere ledighed, mens Nordjylland og Sjælland ligger lavere. Residualerne ligger stabilt omkring nul, hvilket indikerer, at modellen formår at fange de dominerende strukturer i data.
-
-**Figur 11: STL-dekomposition for mænd – log-transformeret arbejdsløshed pr. region**
+Figur 6 viser STL-dekompositionen for kvinder i de fem danske regioner. Der ses tydelige sæsonmønstre med tilbagevendende lavpunkter i sommermånederne og højere ledighed i vinterhalvåret. Trends varierer mellem regionerne: Region Hovedstaden udviser generelt højere ledighed, mens Nordjylland og Sjælland ligger lavere. Residualerne ligger stabilt omkring nul, hvilket indikerer, at modellen formår at fange de dominerende strukturer i data.
 
 ```{r}
 #| echo: false
 #| warning: false
 #| message: false
-
-# Figur 11
 
 mænd_STL <- data |> 
   filter(kon == "Mænd") |>
@@ -509,19 +377,21 @@ mænd_STL |>
   components() |> 
   autoplot() +
   labs(
-    title = "Log-transformeret arbejdsløshed pr. region",
+    title = "Figur 7: STL-dekomposition for mænd – log-transformeret arbejdsløshed pr. region",
     x = "Tid",
     y = "Log(arbejdsløshed)"
   )
+
 ```
 
-Figur 11 viser tilsvarende dekomposition for mænd. Her ses en tilsvarende stærk sæsonkomponent, men med mere markante udsving og højere ledighedsniveauer – især efter finanskrisen. Trends følger samme overordnede forløb som for kvinder, men afvigelserne er større. Dette bekræfter tidligere observationer om højere volatilitet i mænds ledighed. Residualkomponenten er mere varierende, hvilket kan indikere, at nogle udsving ikke fanges fuldt ud af modellen.
+Figur 7 viser tilsvarende dekomposition for mænd. Her ses en tilsvarende stærk sæsonkomponent, men med mere markante udsving og højere ledighedsniveauer – især efter finanskrisen. Trends følger samme overordnede forløb som for kvinder, men afvigelserne er større. Dette bekræfter tidligere observationer om højere volatilitet i mænds ledighed. Residualkomponenten er mere varierende, hvilket kan indikere, at nogle udsving ikke fanges fuldt ud af modellen.
 
 Disse observationer fra STL-dekompositionen bekræfter, at både trend og sæsonmønstre varierer betydeligt på tværs af serierne. Det understreger behovet for modeller, der kan tilpasses hver series struktur, hvilket vil blive præsenteret i det følgende afsnit.
 
 # Modelvalg
 
-I dette afsnit estimeres og sammenlignes tre klassiske modeltyper, ARIMA, ETS og benchmarkmodellen SNaive, for hver tidsserie (region × køn). Hver modeltype har forskellige antagelser og fordele og kan fange forskellige karakteristika i data, såsom trend, sæson og autokorrelation. Modelvalget foretages automatisk for hver serie via fable-pakken, og resultaterne anvendes i den efterfølgende validering og forecast.
+I dette afsnit præsenteres tre klassiske modeltyper: ARIMA, ETS og benchmarkmodellen SNaive for hver af de ti tidsserier, defineret ved kombinationen af region og køn. Modellerne adskiller sig i deres antagelser og egenskaber og er hver især velegnede til at fange strukturelle træk som trend, sæson og autokorrelation. Estimeringen foretages automatisk med fable pakken, som identificerer den bedst passende specifikation for hver serie. Den endelige vurdering af modellerne og deres præcision i fremskrivning gennemføres i næste afsnit, Modelvalidering.
+
 
 ## Valgte modeltyper
 
@@ -534,321 +404,226 @@ ETS-modeller benytter eksponentiel glatning til at vægte nyere observationer h�
 **SNAÏVE (Seasonal Naive)**\
 SNaive er en enkel benchmarkmodel, der baserer hvert forecast på den tilsvarende værdi fra samme sæson i den foregående periode. Modellen fanger sæsonmønstre, men tager ikke højde for trend eller afhængighed i data. Den anvendes til at vurdere, om mere komplekse modeller giver en mærkbart bedre forecast-præcision (Hyndman & Athanasopoulos, 2021, kap. 3 og 8).
 
-## Modellering i praksis
-
-Ved hjælp af fable-pakken estimeres de tre modeller automatisk for hver af de ti tidsserier på baggrund af data fra 2007 til 2019. Herefter genereres forecasts for 2020 med tilhørende prædiktionsintervaller. Prognoserne visualiseres, så man kan sammenligne modellernes adfærd på tværs af regioner og køn.
-
-```{r tabel 2}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Estimér modeller for hele perioden 2007–2019
-models <- data |> 
-  model(
-    ARIMA  = ARIMA(svalue),
-    ETS    = ETS(svalue),
-    SNaive = SNAIVE(svalue)
-  )
-
-# Udtræk modelinformation med glance()
-# Brug TIDY til at få modelstruktur
-modelinfo <- models |>
-  glance() |>
-  select(kon, region, .model, AICc)
-
-
-# Vis tabellen
-modelinfo |> 
-  arrange(kon, region) |> 
-  kable(format = "markdown",
-        caption = "Automatisk valgte modelstrukturer for hver serie (region × køn)",
-        align = "l") |> 
-  kable_styling(full_width = FALSE, position = "center", bootstrap_options = c("striped", "hover")) |> 
-  row_spec(0, bold = TRUE, background = "#f0f0f0")
-
-
-```
-
-Modelvalget er gennemført for hver enkelt tidsserie ved automatisk estimering af ARIMA-, ETS- og SNaive-modeller med fable-pakken. Udvælgelsen er sket på baggrund af AICc, som sikrer en afbalanceret vurdering af modelkompleksitet og tilpasningsevne – særligt vigtigt for relativt korte tidsserier. Resultaterne i Tabel 2 viser, at modellerne varierer betydeligt på tværs af køn og regioner, hvilket understreger nødvendigheden af en differentieret strategi, hvor hver tidsserie behandles individuelt.
-
-SNaive-modellen er anvendt som benchmark og danner referencepunkt for den efterfølgende evaluering. Den egentlige vurdering af modellernes forecast-præcision foretages først i næste afsnit, hvor modellerne sammenlignes på baggrund af tidsserie-krydsvalidering og metrikker som RMSE og MAPE.
-
 # Modelvalidering
 
-For at opnå en robust vurdering kombineres testsplit og time series cross-validation. Testsplittet simulerer en realistisk forecast-situation, mens cross-validation måler præcisionen over flere tidspunkter og reducerer risikoen for tilfældige variationer.
+Dette afsnit har til formål at sikre, at modellerne giver pålidelige forecasts og ikke blot overtilpasser sig historiske data. Gennem tidsserie-crossvalidering, fejlmålinger som RMSE og MAPE, samt residualanalyse identificeres den bedst egnede model for hver serie, baseret på forecastpræcision og modeladfærd.
 
-## Trænings- og testsplit
+## Splitning af datasættet
 
-Datasættet opdeles i en træningsperiode (2007–2018) og en testperiode (2019). Modellerne estimeres på træningsdata og genererer forecasts for teståret. Præcisionen vurderes ved sammenligning med de faktiske observationer fra 2019.
+Vi starter med at splitte datasættet op i et træningssæt og et testsæt. Testsættet er dataen fra hele 2019, som er det sidste år i det samlede datasæt, og træningssættet er alt den forrige data fra 2007-2018.
 
 ```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Opdel datasættet i træning og test
-
 train_data <- data |> filter_index(. ~ "2018 Dec")
 test_data  <- data |> filter_index("2019 Jan" ~ "2019 Dec")
+```
 
-# Estimér modeller for træningsdata
-model_train <- train_data |> 
+## Time-series Cross-validation
+
+Herunder udføres tidsserie-krydsvalidering udelukkende på træningsdataen med et rullende vindue på 60 måneder. Vi anvender stretch_tsibble() til at generere flere trænings- og test-split, som forskydes én måned ad gangen. Tre modeller evalueres: ARIMA, ETS og en sæsonbetonet naiv model (SNaive) – alle på log-transformerede data.
+
+Forecastfejlene beregnes med accuracy(), og beregningerne køres parallelt for hurtigere eksekvering. Resultaterne gemmes med write_rds() for reproducérbarhed.
+
+```{r}
+# plan(multisession)
+
+# cv_data <- train_data |>
+#   stretch_tsibble(.init = 60, .step = 1)
+
+# cv_models <- cv_data |>
+#   model(
+#     ARIMA  = ARIMA(log(svalue)),
+#     ETS    = ETS(log(svalue)),
+#     SNaive = SNAIVE(log(svalue))
+#   )
+
+# write_rds(cv_models, "cv_models.rds")
+
+cv_models <- read_rds("data/cv_models.rds")
+
+cv_accuracy <- cv_models |>
+  accuracy()
+
+# plan(sequential)
+```
+
+### Valg af bedste model for hver tidsserie, baseret på CV
+
+Her identificeres den bedste model for hver kombination af køn og region baseret på laveste RMSE. Ved at gruppere på kon og region og vælge modellen med mindst fejl (slice_min()), får vi én vinder pr. serie uden ligestilling mellem modeller (with_ties = FALSE). Dette gør det muligt senere at bruge den bedste model til forecast for hver delserie.
+
+```{r}
+
+vinder_cv <- cv_accuracy |>
+  group_by(kon, region) |>
+  slice_min(RMSE, n = 1, with_ties = FALSE) |>
+  ungroup()
+
+vinder_cv |> select(kon, region, .model)
+```
+
+Resultaterne viser, at ARIMA-modellen klarer sig bedst i 9 ud af 10 tidsserier. Den eneste undtagelse er kvinder i Region Hovedstaden, hvor en ETS-model giver lavest RMSE. Dette tyder på, at ARIMA generelt formår at tilpasse sig strukturen i dataserierne bedre, hvilket ofte skyldes modellens fleksibilitet i forhold til både trend og sæson. Den ene ETS-vinder indikerer dog, at i nogle tilfælde kan eksponentiel glatning være mere passende – muligvis pga. mere stabil sæson uden kompleks autokorrelation.
+
+## Træning af vindermodel på hele datasættet og test på 2019-data
+
+```{r}
+model_train <- train_data |>
   model(
-    ARIMA  = ARIMA(svalue),
-    ETS    = ETS(svalue),
-    SNaive = SNAIVE(svalue)
+    ARIMA  = ARIMA(log(svalue)),
+    ETS    = ETS(log(svalue)),
+    SNaive = SNAIVE(log(svalue))
   )
 
-# Forecast for 12 måneder (mod testdata)
-forecast_2019 <- model_train |> forecast(h = "12 months")
+train_accuracy <- model_train |> 
+  accuracy() |> 
+  select(kon, region, .model, RMSE_tr = RMSE, MAPE_tr = MAPE)
 
+forecast_2019 <- model_train |>
+  forecast(h = "12 months") |>
+  inner_join(vinder_cv,                      
+             by = c("kon", "region", ".model"))
 ```
 
-## Evalueringsmetrikker: RMSE og MAPE
+Her gentrænes alle tre modeller på hele træningsperioden fra 2010 til 2018. Derefter laves et 12-måneders forecast for 2019, som svarer til testperioden. Ved at forecaste alle modeller og derefter filtrere til den tidligere udpegede vinder (inner_join() med vinder_cv), sikrer vi, at den bedste model anvendes til hver serie i den endelige evaluering.
 
-For at vurdere, hvor godt modellerne forudsiger arbejdsløsheden, sammenlignes deres forecasts for 2019 med de faktiske observationer. Der anvendes to metrikker:
+Her sammenlignes trænings- og testfejl for hver serie ved at kombinere dem i én tabel (train_vs_test). Dette giver overblik over, hvorvidt modellerne generaliserer godt — altså om performance på testdata svarer til performance på træningsdata.
 
--   RMSE måler den gennemsnitlige afvigelse og lægger vægt på store fejl.
-
--   MAPE viser den gennemsnitlige procentvise fejl og muliggør sammenligning på tværs af serier med forskellig måleenhed.
-
-Tabellen nedenfor viser RMSE og MAPE for alle modeller og serier. Værdierne bruges som grundlag for at vurdere, hvilke modeller der præsterer bedst.
+## Sammenligning af trænings- og testscore
 
 ```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Udregn RMSE og MAPE pr. model og serie
-forecast_2019 |> 
-  accuracy(test_data) |> 
-  select(kon, region, .model, RMSE, MAPE) |> 
-  arrange(region, kon, RMSE)
-
-```
-
-## Valg af bedste model pr. serie
-
-For hver kombination af region og køn vælges den model, der opnår lavest RMSE i testperioden. Dette valg sikrer, at den videre analyse baseres på modeller med høj prædiktiv nøjagtighed.
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Vælg modellen med lavest RMSE pr. tidsserie
-forecast_2019 |> 
-  accuracy(test_data) |> 
-  group_by(kon, region) |> 
-  slice_min(RMSE, n = 1) |> 
-  ungroup() |> 
+test_accuracy <- forecast_2019 |>
+  accuracy(test_data) |>
   select(kon, region, .model, RMSE, MAPE)
+
+train_vs_test <- left_join(train_accuracy, test_accuracy,
+                           by = c("kon", "region", ".model"))
+
+train_vs_test <- train_vs_test |> 
+  filter(!is.na(RMSE)) |>
+  relocate(RMSE, .after = RMSE_tr)
+
+train_vs_test
 ```
 
-Som det fremgår af tabellen, vælges ARIMA-modellen for samtlige serier for kvinder. For mænd er billedet mere varieret: ARIMA vinder i Nordjylland og Sjælland, mens SNaive udgør bedste model i de øvrige regioner. Det viser, at præcisionen afhænger både af den regionale kontekst og datamønstre knyttet til køn.
+Sammenligningen af trænings- og testfejl viser, at modellerne generelt præsterer fornuftigt, men med variation. I flere serier er fejlene på testdata lavere end på træningsdata (f.eks. mænd i Region Midtjylland og Nordjylland). Omvendt ser vi enkelte serier med markant højere testfejl (f.eks. mænd i Region Hovedstaden og Syddanmark), hvilket kan indikere overfitting eller uforudsete udsving i 2019.
 
-## Visualisering af forecast vs. faktiske værdier
+### Analyse af residualer og autokorrelation
 
-Forecast og faktisk udvikling kan visualiseres for alle 10 tidsserier:
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-labels <- forecast_2019 |> 
-  accuracy(test_data) |> 
-  group_by(kon, region) |> 
-  slice_min(RMSE, n = 1) |> 
-  ungroup() |> 
-  mutate(label = paste0("Bedste: ", .model))
-
-forecast_2019 |> 
-  autoplot(test_data, level = NULL) +
-  facet_grid(region ~ kon, scales = "free_y") +
-  geom_text(data = labels, 
-            aes(x = as.Date("2019-01-01"), y = Inf, label = label),
-            inherit.aes = FALSE,
-            vjust = 1.5, hjust = 0,
-            size = 3.5, fontface = "italic") +
-  labs(
-    title = "Forecast-præcision i testperioden (2019)",
-    subtitle = "Sammenligning af modeller – med vinder pr. serie",
-    y = "Arbejdsløse pr. 10.000 personer", x = "Tid"
-  ) +
-  coord_cartesian(xlim = c(as.Date("2019-01-01"), as.Date("2019-12-31"))) +
-  theme_minimal() +
-  theme(legend.position = "bottom", legend.title = element_blank())
-
-
-```
-
-Den identificerede model med lavest forecastfejl anvendes i den videre analyse, da den vurderes mest robust til at forudsige fremtidige observationer.
-
-## Time series cross-validation
-
-For at supplere den traditionelle opdeling i trænings- og testperiode anvendes time series cross-validation med rullende vindue. Dette gør det muligt at evaluere forecast-præcisionen på tværs af flere tidspunkter og dermed sikre mere robust modelvurdering.
-
-Datasættet strækkes med et startvindue på 60 måneder og forecast-horisont på 1 måned. For hver udvidet vindue estimeres modellerne (ARIMA, ETS og SNaive), og forecast-fejl beregnes.
+Der er herunder udvalgt 3 tidsserier med forskellige situationer ift. forskellen på trænings- og testscore, som der er blevet dykket længere ned i med gg_tsresiduals.
 
 ```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-# Indlæs eksisterende cv_accuracy, hvis filen findes
-if (file.exists("data/cv_accuracy.rds")) {
-  cv_accuracy <- readRDS("data/cv_accuracy.rds")
-} else {
-  # Kør beregning og gem til fil, hvis den ikke allerede findes
-  data_cv <- data |>
-    stretch_tsibble(.init = 60, .step = 1)
-
-  cv_models <- data_cv |> 
-    model(
-      ARIMA  = ARIMA(svalue),
-      ETS    = ETS(svalue),
-      SNaive = SNAIVE(svalue)
-    )
-
-  cv_accuracy <- cv_models |> 
-    forecast(h = 1) |> 
-    accuracy(data) |> 
-    select(kon, region, .model, RMSE, MAPE)
-
-  #write_rds(cv_accuracy, "data/cv_accuracy.rds")
-}
-```
-
-**Gennemsnitlig performance på tværs af alle tidsserier:**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-cv_accuracy |> 
-  group_by(.model) |> 
-  summarise(across(c(RMSE, MAPE), mean, na.rm = TRUE)) |> 
-  arrange(RMSE)
-
-```
-
-ARIMA opnår de laveste gennemsnitlige RMSE- og MAPE-værdier og præsterer bedst på tværs af serier.
-
-**Den bedste model pr. serie (lavest RMSE):**
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-cv_accuracy |> 
-  group_by(kon, region) |> 
-  slice_min(RMSE, n = 1) |> 
-  ungroup()
-
-```
-
-Resultatet viser, at ARIMA vælges for størstedelen af serierne, hvilket bekræfter den højere præcision i forhold til benchmark og ETS-modeller.
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-
-# Find den bedste model pr. køn og region baseret på laveste RMSE
-vinder_modeller <- cv_accuracy |> 
-  group_by(kon, region) |> 
-  slice_min(order_by = RMSE, n = 1, with_ties = FALSE) |> 
-  ungroup()
-
-xx <- cv_accuracy |> arrange(kon, region, .model, RMSE) 
-
-```
-
-## Residualanalyse og hvid støj
-
-For at undersøge, om den valgte model fanger strukturen i data tilstrækkeligt, kan residualerne fra forecastmodellen inspiceres. Figuren nedenfor ses et eksempel på residualanalyse for ARIMA-modellen estimeret på kvinder i Region Syddanmark:
-
-```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-model_train |> 
-  filter(kon == "Kvinder", region == "Region Syddanmark") |> 
+model_train |>
+  filter(kon == "Mænd", region == "Region Syddanmark") |>
   select(ARIMA) |> 
   gg_tsresiduals()
-
 ```
 
-Figuren indeholder tre elementer: et residualplot over tid, et ACF-plot (autokorrelationsfunktion) og et histogram. Residualerne synes at være tilfældigt fordelt omkring nul, uden synlige systematiske mønstre. ACF-plottet viser ingen signifikant autokorrelation, og histogrammet er centreret og symmetrisk. Samlet indikerer dette, at modellen er veltilpasset og ikke efterlader systematisk information i fejlleddene. Dette mønster genfindes i de øvrige ARIMA-modeller og understøttes af de statistiske test nedenfor.
+Der er kigget nærmere på tidsserien for mænd i region Syddanmark, da den har relativt høj test-RMSE ift. de andre og høj forskel på trænings- og testscore.
 
-Som supplement til den visuelle inspektion anvendes Ljung-Box-testen til at undersøge, om residualerne fra modellerne er ukorrellerede – altså om de udgør hvid støj.
+Residualerne ser ud til at være nogenlunde centreret omkring nul, men der er enkelte ekstreme udsving (outliers), særligt i 2009 og 2016.
+
+ACF-plottet viser, at der ikke er signifikant autokorrelation i residualerne — alle ligger inden for konfidensgrænserne. Det er et tegn på, at modellen har fanget den systematiske struktur i data. Histogrammet indikerer en rimelig symmetrisk fordeling, men med lidt tungere haler end en ideel normalfordeling.
+
+Samlet set tyder residualanalysen på, at modellen er acceptabel, men de ekstreme observationer og den relativt høje forecastfejl på testdata (RMSE = 0.085) antyder, at modellen kan være følsom over for enkelte udsving.
 
 ```{r}
-#| echo: false
-#| warning: false
-#| message: false
-
-model_train |> 
-  select(ARIMA, ETS, SNaive) |> 
-  augment() |> 
-  features(.resid, ljung_box, lag = 24, dof = 0)
+model_train |>
+  filter(kon == "Mænd", region == "Region Midtjylland") |>
+  select(ARIMA) |> 
+  gg_tsresiduals()
 ```
 
-For ARIMA-modellerne er p-værdierne generelt ikke-signifikante (p > 0.05), hvilket indikerer ukorrellerede residualer og dermed god modeltilpasning. Omvendt viser ETS- og SNaive-modeller i flere tilfælde tegn på strukturer i residualerne. Det styrker indtrykket af, at ARIMA er den mest velegnede modeltype i dette datasæt.
+Der er kigget nærmere på tidsserien for mænd i region Midtjylland, da den har lav test-RMSE ift. trænings-RMSE.
 
-På tværs af både testsplit og cross-validation opnår ARIMA den højeste forecast-præcision og opfylder modelantagelserne bedst. Den anvendes derfor som primær model i den videre analyse.
+Modellen ser ud til at have fanget strukturen i data rimeligt godt. Residualerne er generelt centreret omkring nul, men enkelte større afvigelser ses tidligt i serien.
 
-# Forecasting
+ACF-plottet viser svag autokorrelation ved nogle højere lags, men ingen værdier ligger tydeligt uden for konfidensgrænserne. Histogrammet viser en nogenlunde symmetrisk fordeling med lette afvigelser fra normalitet.
 
-På baggrund af modelvalideringen foretages nu egentlige forecasts for året 2020. For hver af de ti tidsserier anvendes den model, der klarede sig bedst under valideringen. Modellerne estimeres på hele perioden 2007–2019 for at sikre maksimal informationsudnyttelse i den endelige træning.
-
-## Estimering og forecast på 2020
-
-Data frem til december 2019 bruges som træningsgrundlag. For hver serie estimeres ARIMA, ETS og SNaive, hvorefter det forecast vælges, som matcher den bedste modeltype (fra valideringen):
+Samlet set er der ikke tegn på systematiske fejl i residualerne. Det stemmer godt overens med den relativt lave RMSE på testdata (RMSE = 0.019) sammenlignet med en højere træningsfejl (RMSE = 0.050), hvilket tyder på, at modellen generaliserer bedre end forventet.
 
 ```{r}
-data_train <- data |> filter_index(. ~ "2019 Dec")
+model_train |>
+  filter(kon == "Kvinder", region == "Region Nordjylland") |>
+  select(ARIMA) |> 
+  gg_tsresiduals()
+```
 
-models_final <- data_train |> 
-  model(
-    ARIMA  = ARIMA(svalue),
-    ETS    = ETS(svalue),
-    SNaive = SNAIVE(svalue)
+Til sidst er der kigget nærmere på tidsserien for kvinder i region Nordjylland, da den har lav test-RMSE og lav trænings-RMSE.
+
+Residualerne er pænt centreret omkring nul og uden tydelige mønstre over tid. Der ses enkelte udsving, men ingen systematiske afvigelser.
+
+ACF-plottet viser lidt autokorrelation ved lag 17, men det virker rimelig tilfældigt og ellers ligger værdierne inden for konfidensgrænserne, hvilket tyder på, at modellen har fanget den væsentlige struktur i data. Histogrammet viser en forholsvist symmetrisk fordeling af residualerne.
+
+Samlet set understøtter residualanalysen, at modellen er velfungerende for denne serie. Det stemmer overens med en lav forecastfejl på testdata (RMSE = 0.012) og indikerer, at modellen generaliserer stabilt.
+
+### Ljung-tests for tidsserier
+
+```{r}
+ljung_box_results <- model_train |> 
+  augment() |>
+  features(.innov, ljung_box, lag = 24, dof = 3)
+
+ljung_box_vindere <- ljung_box_results |>
+  inner_join(vinder_cv, by = c("kon", "region", ".model")) |> 
+  select(1:5)
+```
+
+For hver vinder-model er der udført en Ljung-Box test med 24 lags og 3 frihedsgrader for at vurdere, om residualerne er serielt uafhængige.
+
+Resultaterne viser, at 9 ud af 10 modeller har høje p-værdier, hvilket betyder, at vi ikke forkaster nulhypotesen om uafhængige residualer. Det tyder på, at modellerne har fanget den væsentlige struktur i data.
+
+Dog er der en klar undtagelse: ETS-modellen for kvinder i Region Hovedstaden har en meget lav p-værdi, hvilket tyder på signifikant autokorrelation i residualerne. Det skaber tvivl om modellens gyldighed her og kunne indikere, at ARIMA muligvis havde været et bedre valg for denne serie.
+
+Samlet set tyder resultaterne på, at residualerne fra de fleste modeller kan betragtes som hvid støj, hvilket er et centralt krav i vurderingen af en god tidsseriemodel.
+
+# Sammenligning af 2019 forudsigelser og virkeligheden
+
+```{r}
+forecast_vs_actual <- forecast_2019 |>
+  left_join(
+    test_data |> select(kon, region, yearmonth, actual = svalue),
+    by = c("kon", "region", "yearmonth")
   )
 
-forecast_2020 <- models_final |> forecast(h = "12 months")
-
-forecast_best <- forecast_2020 |> 
-  inner_join(vinder_modeller, by = c("kon", "region", ".model"))
-
+forecast_vs_actual |>
+  ggplot(aes(x = yearmonth)) +
+  geom_line(aes(y = actual), color = "black", size = 0.9, linetype = "solid") +
+  geom_line(aes(y = .mean), color = "blue", size = 0.9, linetype = "dashed") +
+  facet_grid(region ~ kon, scales = "free_y") +
+  labs(
+    title = "Forecast vs. Faktiske værdier – 2019",
+    y = "Arbejdsløse pr. 10.000 personer",
+    x = "Tid",
+    caption = "Sort = Faktisk | Blå = Forecast"
+  ) +
+  theme_minimal(base_size = 13)
 ```
 
+Plottet viser en sammenligning mellem de faktiske observationer (sort) og modellernes punktprognoser (blå) for 2019, opdelt på køn og region. Generelt følger prognoserne udviklingen i de faktiske data tæt, hvilket bekræfter, at modellerne har god forudsigelsesevne.
 
-## Visualisering med prædiktionsintervaller
+Særligt for mænd i Region Midtjylland og Nordjylland er der meget tæt overensstemmelse. Derimod ses systematiske afvigelser for mænd i Region Syddanmark og kvinder i Region Hovedstaden, hvor modellerne undervurderer eller overvurderer udviklingen. Det stemmer overens med de højere RMSE-værdier og residualanalyser for disse serier.
 
-Forecasts for 2020 visualiseres for alle serier med prædiktionsintervaller på 80% og 95%. Den bedste model for hver serie fremgår af farven på forecast-linjen og angives desuden som label i hvert facet.
+# Forecasting af 2020 for alle tidsserier
 
 ```{r}
-labels <- vinder_modeller |> 
-  mutate(label = paste0("Model: ", .model))
+data_train_final <- data
 
-forecast_best |> 
-  autoplot(data) +
-  geom_text(data = labels,
-            aes(x = as.Date("2020-01-01"), y = Inf, label = label),
-            inherit.aes = FALSE,
-            vjust = 1.5, hjust = 0, size = 3.2, fontface = "italic") +
+models_final <- data_train_final |> 
+  model(
+    ARIMA  = ARIMA(log(svalue)),
+    ETS    = ETS(log(svalue)),
+    SNaive = SNAIVE(log(svalue))
+  )
+
+forecast_2020 <- models_final |> 
+  forecast(h = "12 months") |> 
+  inner_join(vinder_cv, by = c("kon", "region", ".model"))
+
+forecast_2020 |> 
+  autoplot(level = c(80, 95)) +
   facet_grid(region ~ kon, scales = "free_y") +
   labs(
     title = "Forecast for 2020 – bedste model pr. serie",
-    subtitle = "Med 80% og 95% prædiktionsintervaller (grå bånd)",
-    y = "Arbejdsløse pr. 10.000 personer", 
+    subtitle = "Med 80% og 95% prædiktionsintervaller",
+    y = "Arbejdsløse pr. 10.000 personer",
     x = "Tid"
   ) +
   theme_minimal(base_size = 12) +
@@ -858,35 +633,38 @@ forecast_best |>
     plot.title = element_text(face = "bold"),
     strip.text = element_text(face = "bold")
   )
-
 ```
-Forecast vises med farvet linje (model) og grå bånd for prædiktionsintervaller. De to niveauer (80% og 95%) angiver forskellig grad af usikkerhed.
 
-## Centrale prognoseværdier
-```{r}
-forecast_best |> 
-  group_by(kon, region) |> 
-  summarise(prognose2020 = mean(.mean, na.rm = TRUE))
-```
-Med udgangspunkt i validerede modeller er der nu genereret forecasts for 2020. I næste afsnit analyseres og sammenlignes de centrale resultater på tværs af køn og regioner.
+Plottet viser 12 måneders fremskrivning for 2020 baseret på den bedste model pr. serie, suppleret med 80% og 95% prædiktionsintervaller. For de fleste serier anvendes ARIMA (rød), mens ETS (turkis) kun bruges for kvinder i Region Hovedstaden.
+
+De fleste forecasts viser relativt stabile niveauer i arbejdsløsheden, men for flere mandlige serier (især Region Syddanmark og Midtjylland) ses en tydelig stigning og stigende usikkerhed hen over året – hvilket afspejles i de bredere konfidensbånd.
+
+Visualiseringen illustrerer både det forventede niveau og usikkerheden i prognoserne, og den bekræfter, at modellerne er i stand til at fange forskelle mellem regioner og køn.
+
+# Konsklusion
+
+Denne opgave har undersøgt, hvordan klassiske tidsseriemodeller som ARIMA, ETS og benchmarkmodellen SNaive kan anvendes til at analysere og forudsige udviklingen i arbejdsløsheden i Danmark, opdelt på region og køn. Analysen bygger på ti tidsserier, som dækker perioden 2007 til 2019, og er gennemført med fokus på datamønstre, modelestimering og forudsigelsespræcision.
+
+Den eksplorative analyse viste tydelige sæsonvariationer og regionale forskelle i arbejdsløsheden, især blandt mænd. Med log-transformerede data og STL-dekomposition blev det muligt at fremhæve og vurdere trends og sæsonkomponenter i de enkelte serier. Beregningen af features og deskriptive mål bekræftede høj autokorrelation og gennemgående trends, hvilket er væsentligt for valg af modeltype.
+
+Modelvalideringen pegede på ARIMA som den mest præcise model i ni ud af ti serier. Krydsvalidering, residualanalyse og Ljung-Box-tests indikerede generelt, at modellerne var godt tilpasset og havde uafhængige fejlled. En undtagelse blev identificeret for ETS-modellen i Region Hovedstaden, hvor residualerne udviste autokorrelation, hvilket giver anledning til tvivl om modellens egnethed i denne sammenhæng.
+
+Sammenligningen mellem modellernes forudsigelser og de faktiske observationer i 2019 viste overordnet god overensstemmelse. Prognoserne for 2020 antyder overvejende stabile niveauer, men med stigende usikkerhed i visse mandlige serier, særligt i Region Syddanmark og Midtjylland.
+
+Samlet set viser analysen, at klassiske tidsseriemodeller, særligt ARIMA, egner sig godt til at beskrive og forudsige arbejdsløsheden i et dansk kontekstuelt rum, forudsat at modellerne valideres grundigt og vurderes kritisk i forhold til residualstruktur og prognoseegenskaber.
 
 
-# Sammenligning og fortolkning
-
-## Sammenligning på tværs af serier
-
-## Tendenser mellem regioner og køn
-
-# Konklusion
 
 \newpage
 
 # Kildeliste
 
-Hyndman, R. J., & Athanasopoulos, G. (2021). *Forecasting: principles and practice* (3rd ed.). OTexts. https://otexts.com/fpp3/
+Hyndman, R. J., & Athanasopoulos, G. (2021). Forecasting: principles and practice (3rd ed.). OTexts. https://otexts.com/fpp3/
+
+OpenAI. (2025). ChatGPT (v.4o) [Large language model]. https://chat.openai.com/
 
 \newpage
 
 # Bilagsoversigt
 
--   Bilag 1: Udleverede Powerpointpræsentationer v. Michael Freundlich: Chefkonsulent, Erhvervsservice og facility
+-   Bilag 1: Features
